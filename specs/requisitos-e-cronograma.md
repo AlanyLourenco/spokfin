@@ -56,6 +56,9 @@ Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` já foram roda
 | CI (N2) | GitHub Actions (`.github/workflows/ci.yml`) rodando `flutter analyze` + `flutter test` a cada push, no repositório `github.com/AlanyLourenco/spokfin` |
 | Rate limiting nas Edge Functions de IA (N4) | Migration `0010_rate_limit_ia.sql` (tabela `ia_uso` + RPC `registrar_uso_ia`) — 30 chamadas/hora por usuário, checado antes de gastar com a OpenAI em `parse-lancamento` e `transcrever-audio` |
 | Paginação nas listas (N5) | Histórico (limite crescente sobre as 2 fontes mescladas + "Carregar mais"), Clientes (keyset por `nome` + busca server-side com debounce) e MRR (keyset por `created_at`) — todas em páginas de 30 itens |
+| Política de Privacidade + Termos de Uso (N6) | `TermosScreen` (specs/0005) — rascunho técnico-funcional; revisão por advogado ainda recomendada antes de lançamento público |
+| Exclusão de conta e dados (N7) | `PerfilScreen` → Edge Function `excluir-conta`, cascata de FK já existente (specs/0005) |
+| Consentimento explícito no cadastro (N8) | Checkbox obrigatório em `SignupScreen`, timestamp em `user_metadata` (specs/0005) |
 
 ---
 
@@ -65,9 +68,6 @@ Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` já foram roda
 |---|---|---|---|
 | N1' | Testes automatizados para regras de negócio que vivem só em SQL (`calcular_saldo`, troca pago↔pendente, RLS) | Qualidade | A parte Dart-testável de N1 já foi feita; falta a parte que exigiria um projeto Supabase de teste (pgTAP ou script de integração) — decisão de infra em aberto |
 | N3 | Monitoramento de erros em produção (ex: Sentry) | Observabilidade | Hoje um erro em produção só aparece se o usuário reportar — adiado a pedido até a Fase E (produção) |
-| N6 | Política de Privacidade + Termos de Uso | Legal/LGPD | Bloqueador para lançamento público — app guarda dados pessoais de clientes (nome, telefone) |
-| N7 | Fluxo de exclusão de conta e dados do próprio usuário (direito ao esquecimento) | Legal/LGPD | Hoje só existe exclusão de *cliente*; não existe "excluir minha conta/empresa" |
-| N8 | Consentimento explícito no cadastro (aceite de termos) | Legal/LGPD | Depende de N6 existir primeiro |
 | N9 | Ícone de app e splash screen personalizados | Distribuição | Hoje usa o ícone/splash padrão do Flutter — bloqueador de fato para lojas (Apple/Google rejeitam ícone padrão) |
 | N10 | Teste real em emulador/dispositivo Android e iOS | Distribuição | Todo o desenvolvimento e teste desta sessão foi via `flutter run -d chrome`/web-server; mobile nunca foi validado de fato, apesar do projeto ter os diretórios `android/`/`ios/` desde a Fase 0 |
 | N11 | Deploy web de produção (hosting + domínio + HTTPS) | Distribuição | Hoje só roda em `localhost` durante desenvolvimento |
@@ -84,7 +84,7 @@ Ordenado por **dependência real** — cada fase assume que a anterior está pro
 flowchart TD
     A["Fase A — Destravar o que já está pronto ✅"] --> B["Fase B — Rede de segurança técnica ✅"]
     B --> C["Fase C — Performance ✅"]
-    B --> D["Fase D — Conformidade legal (LGPD)"]
+    B --> D["Fase D — Conformidade legal (LGPD) ✅"]
     C --> E["Fase E — Preparar distribuição"]
     D --> E
     E --> F["Fase F — Publicar e expandir"]
@@ -99,8 +99,8 @@ flowchart TD
 
     C1["Paginação nas listas (N5) ✅"] --> C
 
-    D1["Política de Privacidade + Termos (N6)"] --> D2["Consentimento no cadastro (N8)"]
-    D3["Exclusão de conta/dados (N7)"] --> D
+    D1["Política de Privacidade + Termos (N6) ✅"] --> D2["Consentimento no cadastro (N8) ✅"]
+    D3["Exclusão de conta/dados (N7) ✅"] --> D
 
     E1["Ícone e splash (N9)"] --> E
     E2["Deploy web produção (N11)"] --> E
@@ -125,11 +125,10 @@ flowchart TD
 ### Fase C — Performance ✅
 - ✅ **N5** Paginação em Histórico (páginas de 30, mesclando 2 fontes), Clientes (keyset por nome + busca server-side) e MRR (keyset por `created_at`).
 
-### Fase D — Conformidade legal (LGPD)
-*Pode rodar em paralelo à Fase C — não depende de código, depende de decisão de produto/jurídico.*
-- **N6** Política de Privacidade + Termos de Uso (documento).
-- **N8** Consentimento explícito no cadastro (depende do texto de N6 existir).
-- **N7** Fluxo de exclusão de conta e dados do usuário.
+### Fase D — Conformidade legal (LGPD) ✅
+- ✅ **N6** Política de Privacidade + Termos de Uso (`TermosScreen`, specs/0005) — rascunho técnico-funcional; ainda recomendado revisar com advogado antes de lançar publicamente.
+- ✅ **N8** Consentimento explícito no cadastro (checkbox obrigatório em `SignupScreen`, timestamp salvo no `user_metadata`).
+- ✅ **N7** Fluxo de exclusão de conta e dados do usuário (`PerfilScreen` → Edge Function `excluir-conta`, cascata de FK já existente cuida do resto). Migration `0013` rodada e função implantada.
 
 ### Fase E — Preparar distribuição
 *Depende de C e D estarem prontas — não faz sentido publicar um app sem paginação (trava com muitos dados) ou sem política de privacidade (rejeitado/ilegal).*
