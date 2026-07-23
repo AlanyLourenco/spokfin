@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../shared/formatters.dart';
 import '../theme.dart';
 import 'lancamento_detalhado.dart';
 
@@ -70,7 +71,7 @@ Future<void> mostrarRecibo(
               style: TextStyle(color: AppColors.textMuted, fontSize: 11),
             ),
             Text(
-              'R\$ ${lancamento.valor.toStringAsFixed(2)}',
+              formatarMoeda(lancamento.valor),
               style: const TextStyle(
                 color: AppColors.accent,
                 fontSize: 26,
@@ -149,7 +150,7 @@ Future<void> _compartilharRecibo({
             style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey),
           ),
           pw.Text(
-            'R\$ ${lancamento.valor.toStringAsFixed(2)}',
+            formatarMoeda(lancamento.valor),
             style: pw.TextStyle(
               fontSize: 24,
               fontWeight: pw.FontWeight.bold,

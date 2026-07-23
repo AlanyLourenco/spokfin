@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 import 'cliente_form_screen.dart';
 import 'ficha_cliente_screen.dart';
@@ -352,7 +353,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                               ),
                               trailing: debito > 0
                                   ? Text(
-                                      'R\$ ${debito.toStringAsFixed(2)}',
+                                      formatarMoeda(debito),
                                       style: const TextStyle(
                                         color: AppColors.negative,
                                         fontWeight: FontWeight.bold,

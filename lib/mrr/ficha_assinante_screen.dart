@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 
 class FichaAssinanteScreen extends StatefulWidget {
@@ -119,7 +120,7 @@ class _FichaAssinanteScreenState extends State<FichaAssinanteScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'R\$ ${_valorMensalidade.toStringAsFixed(2)}/mês · todo dia $_diaVencimento',
+                          '${formatarMoeda(_valorMensalidade)}/mês · todo dia $_diaVencimento',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 
 const _nomesMesesCompletos = [
@@ -139,7 +140,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'R\$ ${liquido.toStringAsFixed(2)}',
+                          formatarMoeda(liquido),
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
@@ -168,7 +169,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'R\$ ${dados.receitas.toStringAsFixed(2)}',
+                                formatarMoeda(dados.receitas),
                                 style: const TextStyle(
                                   color: AppColors.accent,
                                   fontWeight: FontWeight.bold,
@@ -194,7 +195,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'R\$ ${dados.despesas.toStringAsFixed(2)}',
+                                formatarMoeda(dados.despesas),
                                 style: const TextStyle(
                                   color: AppColors.negative,
                                   fontWeight: FontWeight.bold,

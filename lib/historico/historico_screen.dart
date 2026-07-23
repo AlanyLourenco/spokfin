@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 
 const _tamanhoPagina = 30;
@@ -282,16 +283,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   i.descricao,
                   i.categoria,
                   i.statusLabel,
-                  '${i.tipo == 'entrada' ? '+' : '-'} R\$ ${i.valor.toStringAsFixed(2)}',
+                  '${i.tipo == 'entrada' ? '+' : '-'} ${formatarMoeda(i.valor)}',
                 ],
             ],
           ),
           pw.SizedBox(height: 16),
           pw.Divider(),
-          pw.Text('Total de Entradas: R\$ ${entradas.toStringAsFixed(2)}'),
-          pw.Text('Total de Saídas: R\$ ${saidas.toStringAsFixed(2)}'),
+          pw.Text('Total de Entradas: ${formatarMoeda(entradas)}'),
+          pw.Text('Total de Saídas: ${formatarMoeda(saidas)}'),
           pw.Text(
-            'Saldo do Período: R\$ ${(entradas - saidas).toStringAsFixed(2)}',
+            'Saldo do Período: ${formatarMoeda(entradas - saidas)}',
             style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
           ),
         ],
@@ -577,7 +578,7 @@ class _ItemTile extends StatelessWidget {
               ),
             ),
             Text(
-              '$sinal R\$ ${item.valor.toStringAsFixed(2)}',
+              '$sinal ${formatarMoeda(item.valor)}',
               style: TextStyle(color: cor, fontWeight: FontWeight.bold),
             ),
           ],

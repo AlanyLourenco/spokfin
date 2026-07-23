@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 import 'editar_lancamento_screen.dart';
 import 'lancamento_detalhado.dart';
@@ -116,7 +117,7 @@ class _DetalhesLancamentoScreenState extends State<DetalhesLancamentoScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Excluir lançamento?'),
         content: Text(
-          'Isso vai apagar "${_lancamento.descricao}" (R\$ ${_lancamento.valor.toStringAsFixed(2)}) permanentemente. Essa ação não pode ser desfeita.',
+          'Isso vai apagar "${_lancamento.descricao}" (${formatarMoeda(_lancamento.valor)}) permanentemente. Essa ação não pode ser desfeita.',
         ),
         actions: [
           TextButton(
@@ -212,7 +213,7 @@ class _DetalhesLancamentoScreenState extends State<DetalhesLancamentoScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                '$sinal R\$ ${_lancamento.valor.toStringAsFixed(2)}',
+                '$sinal ${formatarMoeda(_lancamento.valor)}',
                 style: TextStyle(
                   color: cor,
                   fontSize: 32,

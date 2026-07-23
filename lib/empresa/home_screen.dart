@@ -9,6 +9,7 @@ import '../lancamentos/revisar_lancamento_screen.dart';
 import '../main.dart';
 import '../mrr/ficha_assinante_screen.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 
 class _LancamentoResumo {
@@ -313,18 +314,65 @@ class _HomeTabContentState extends State<HomeTabContent> {
     _recarregar();
   }
 
+  String get _iniciais {
+    final nome = widget.nomeExibicao.trim();
+    if (nome.isEmpty) return '?';
+    return nome
+        .split(RegExp(r'\s+'))
+        .take(2)
+        .map((p) => p[0])
+        .join()
+        .toUpperCase();
+  }
+
+  Future<void> _abrirMenuPerfil() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: AppColors.surfaceAlt,
+                child: Text(
+                  _iniciais,
+                  style: const TextStyle(
+                    color: AppColors.accent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(
+                widget.nomeExibicao,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            const Divider(color: AppColors.border, height: 1),
+            ListTile(
+              leading: const Icon(Icons.logout, color: AppColors.negative),
+              title: const Text(
+                'Sair',
+                style: TextStyle(color: AppColors.negative),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                supabase.auth.signOut();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.nomeExibicao),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: supabase.auth.signOut,
-          ),
-        ],
-      ),
       body: FutureBuilder<_HomeData>(
         future: _dataFuture,
         builder: (context, snapshot) {
@@ -337,6 +385,40 @@ class _HomeTabContentState extends State<HomeTabContent> {
           final dados = snapshot.data!;
           return Column(
             children: [
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'spokfin',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _abrirMenuPerfil,
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppColors.surfaceAlt,
+                          child: Text(
+                            _iniciais,
+                            style: const TextStyle(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(16),
@@ -354,7 +436,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'R\$ ${dados.saldo.toStringAsFixed(2)}',
+                            formatarMoeda(dados.saldo),
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
@@ -455,7 +537,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                         ),
                                       ),
                                       Text(
-                                        'R\$ ${(a['valor_mensalidade'] as num).toStringAsFixed(2)}/mês',
+                                        '${formatarMoeda(a['valor_mensalidade'] as num)}/mês',
                                         style: const TextStyle(
                                           color: AppColors.negative,
                                           fontWeight: FontWeight.bold,
@@ -693,7 +775,7 @@ class _MiniStat extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'R\$ ${valor.toStringAsFixed(2)}',
+          formatarMoeda(valor),
           style: TextStyle(
             color: cor,
             fontWeight: FontWeight.bold,
@@ -826,7 +908,7 @@ class _LancamentoTile extends StatelessWidget {
               ),
             ),
             Text(
-              '$sinal R\$ ${lancamento.valor.toStringAsFixed(2)}',
+              '$sinal ${formatarMoeda(lancamento.valor)}',
               style: TextStyle(color: cor, fontWeight: FontWeight.bold),
             ),
           ],

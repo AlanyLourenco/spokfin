@@ -4,6 +4,7 @@ import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 import 'adicionar_encarregado_sheet.dart';
 import 'cliente_form_screen.dart';
@@ -344,7 +345,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                         ),
                         Text(
                           emDebito
-                              ? 'Em Débito: R\$ ${dados.debito.toStringAsFixed(2)}'
+                              ? 'Em Débito: ${formatarMoeda(dados.debito)}'
                               : 'Sem Pendências',
                           style: TextStyle(
                             color: emDebito
@@ -373,7 +374,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'R\$ ${dados.totalPago.toStringAsFixed(2)}',
+                                formatarMoeda(dados.totalPago),
                                 style: const TextStyle(
                                   color: AppColors.accent,
                                   fontSize: 18,
@@ -542,7 +543,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                                 ),
                               ),
                               Text(
-                                '${h.tipo == 'entrada' ? '+' : '-'} R\$ ${h.valor.toStringAsFixed(2)}',
+                                '${h.tipo == 'entrada' ? '+' : '-'} ${formatarMoeda(h.valor)}',
                                 style: TextStyle(
                                   color: h.tipo == 'entrada'
                                       ? AppColors.accent

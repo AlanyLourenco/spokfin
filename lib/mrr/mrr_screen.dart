@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 import 'ficha_assinante_screen.dart';
 import 'nova_assinatura_screen.dart';
@@ -232,7 +233,7 @@ class _MrrScreenState extends State<MrrScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'R\$ ${(_mrr ?? 0).toStringAsFixed(2)}',
+                            formatarMoeda(_mrr ?? 0),
                             style: const TextStyle(
                               color: AppColors.accent,
                               fontSize: 22,
@@ -338,7 +339,7 @@ class _AssinaturaTile extends StatelessWidget {
           ),
           title: Text(nome),
           subtitle: Text(
-            'R\$ ${valor.toStringAsFixed(2)}/mês · todo dia $diaVencimento',
+            '${formatarMoeda(valor)}/mês · todo dia $diaVencimento',
           ),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
