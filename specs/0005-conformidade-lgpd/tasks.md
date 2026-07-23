@@ -9,6 +9,7 @@
 - [x] `flutter analyze` limpo
 - [x] `flutter test` passando
 - [x] Commit + push
+- [x] Migration 0013 rodada e Edge Function `excluir-conta` implantada pelo usuário
 - [ ] Testado manualmente no navegador (cadastro com/sem aceite, editar Perfil, abrir Termos, excluir conta)
 - [x] Atualizar índice em `specs/README.md`
 - [x] Avisar o usuário: rodar migration `0013` no SQL Editor e implantar a Edge Function `excluir-conta` manualmente no Supabase (nenhuma das duas eu consigo fazer por aqui)
