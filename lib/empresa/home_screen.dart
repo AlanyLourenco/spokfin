@@ -7,6 +7,7 @@ import '../lancamentos/ia_service.dart';
 import '../lancamentos/lancamento_detalhado.dart';
 import '../lancamentos/revisar_lancamento_screen.dart';
 import '../main.dart';
+import '../perfil/perfil_screen.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
@@ -278,47 +279,10 @@ class _HomeTabContentState extends State<HomeTabContent> {
         .toUpperCase();
   }
 
-  Future<void> _abrirMenuPerfil() async {
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.surfaceAlt,
-                child: Text(
-                  _iniciais,
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              title: Text(
-                widget.nomeExibicao,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const Divider(color: AppColors.hairline, height: 1),
-            ListTile(
-              leading: const Icon(Icons.logout, color: AppColors.negative),
-              title: const Text(
-                'Sair',
-                style: TextStyle(color: AppColors.negative),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                supabase.auth.signOut();
-              },
-            ),
-          ],
-        ),
+  void _abrirPerfil() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PerfilScreen(empresaId: widget.empresaId),
       ),
     );
   }
@@ -359,7 +323,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: _abrirMenuPerfil,
+                          onTap: _abrirPerfil,
                           child: Container(
                             width: 32,
                             height: 32,

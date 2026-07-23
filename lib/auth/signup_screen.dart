@@ -1,8 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
+import '../perfil/termos_screen.dart';
 import '../shared/campo_rotulado.dart';
+import '../theme.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -18,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _loading = false;
   String? _error;
   bool _confirmationSent = false;
+  bool _aceitouTermos = false;
 
   @override
   void dispose() {
@@ -26,8 +30,14 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
+  void _abrirTermos() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TermosScreen()),
+    );
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || !_aceitouTermos) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -36,6 +46,7 @@ class _SignupScreenState extends State<SignupScreen> {
       final res = await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
+        data: {'termos_aceitos_em': DateTime.now().toUtc().toIso8601String()},
       );
       if (res.session == null) {
         setState(() => _confirmationSent = true);
@@ -95,6 +106,49 @@ class _SignupScreenState extends State<SignupScreen> {
                                 : null,
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Checkbox(
+                              value: _aceitouTermos,
+                              onChanged: (v) =>
+                                  setState(() => _aceitouTermos = v ?? false),
+                            ),
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: GestureDetector(
+                                  onTap: () => setState(
+                                    () => _aceitouTermos = !_aceitouTermos,
+                                  ),
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                        color: AppColors.textMuted,
+                                        fontSize: 13,
+                                      ),
+                                      children: [
+                                        const TextSpan(text: 'Li e aceito os '),
+                                        TextSpan(
+                                          text:
+                                              'Termos de Uso e a Política de Privacidade',
+                                          style: const TextStyle(
+                                            color: AppColors.accent,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          recognizer:
+                                              (TapGestureRecognizer()
+                                                ..onTap = _abrirTermos),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                         if (_error != null) ...[
                           const SizedBox(height: 12),
                           Text(
@@ -106,7 +160,9 @@ class _SignupScreenState extends State<SignupScreen> {
                         ],
                         const SizedBox(height: 20),
                         FilledButton(
-                          onPressed: _loading ? null : _submit,
+                          onPressed: (_loading || !_aceitouTermos)
+                              ? null
+                              : _submit,
                           child: _loading
                               ? const SizedBox(
                                   width: 18,
