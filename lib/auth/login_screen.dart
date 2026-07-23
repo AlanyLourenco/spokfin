@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
+import '../shared/campo_rotulado.dart';
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 
@@ -58,22 +59,28 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'E-mail'),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) => (v == null || !v.contains('@'))
-                        ? 'E-mail inválido'
-                        : null,
+                  CampoRotulado(
+                    rotulo: 'E-mail',
+                    child: TextFormField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(hintText: 'voce@exemplo.com'),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) => (v == null || !v.contains('@'))
+                          ? 'E-mail inválido'
+                          : null,
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(labelText: 'Senha'),
-                    obscureText: true,
-                    validator: (v) => (v == null || v.length < 6)
-                        ? 'Mínimo 6 caracteres'
-                        : null,
+                  const SizedBox(height: 16),
+                  CampoRotulado(
+                    rotulo: 'Senha',
+                    child: TextFormField(
+                      controller: _passwordController,
+                      decoration: const InputDecoration(hintText: '••••••'),
+                      obscureText: true,
+                      validator: (v) => (v == null || v.length < 6)
+                          ? 'Mínimo 6 caracteres'
+                          : null,
+                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),

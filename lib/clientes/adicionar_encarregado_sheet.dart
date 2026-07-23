@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../shared/campo_rotulado.dart';
+import '../shared/mascaras.dart';
 import '../theme.dart';
 
 Future<bool?> mostrarFormularioEncarregado(
@@ -61,6 +63,11 @@ class _FormularioEncarregadoState extends State<_FormularioEncarregado> {
       setState(() => _error = 'Nome é obrigatório');
       return;
     }
+    final telefone = _telefoneController.text.trim();
+    if (telefone.isNotEmpty && !telefoneValido(telefone)) {
+      setState(() => _error = 'Telefone inválido');
+      return;
+    }
 
     setState(() {
       _loading = true;
@@ -98,20 +105,30 @@ class _FormularioEncarregadoState extends State<_FormularioEncarregado> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 16),
-        TextField(
-          controller: _nomeController,
-          decoration: const InputDecoration(labelText: 'Nome'),
+        CampoRotulado(
+          rotulo: 'Nome',
+          child: TextField(
+            controller: _nomeController,
+            decoration: const InputDecoration(hintText: 'Nome do encarregado'),
+          ),
         ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _cargoController,
-          decoration: const InputDecoration(labelText: 'Cargo (opcional)'),
+        const SizedBox(height: 16),
+        CampoRotulado(
+          rotulo: 'Cargo (opcional)',
+          child: TextField(
+            controller: _cargoController,
+            decoration: const InputDecoration(hintText: 'Ex: Financeiro'),
+          ),
         ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _telefoneController,
-          decoration: const InputDecoration(labelText: 'Telefone (opcional)'),
-          keyboardType: TextInputType.phone,
+        const SizedBox(height: 16),
+        CampoRotulado(
+          rotulo: 'Telefone (opcional)',
+          child: TextField(
+            controller: _telefoneController,
+            decoration: const InputDecoration(hintText: '(00) 00000-0000'),
+            keyboardType: TextInputType.phone,
+            inputFormatters: [TelefoneInputFormatter()],
+          ),
         ),
         if (_error != null) ...[
           const SizedBox(height: 12),

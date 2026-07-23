@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
+import '../shared/campo_rotulado.dart';
+import '../shared/mascaras.dart';
 
 class EmpresaSetupScreen extends StatefulWidget {
   const EmpresaSetupScreen({super.key, required this.onEmpresaCriada});
@@ -85,37 +87,60 @@ class _EmpresaSetupScreenState extends State<EmpresaSetupScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _razaoSocialController,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome da Empresa',
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Obrigatório' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _nomeFantasiaController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome fantasia (opcional)',
+                  CampoRotulado(
+                    rotulo: 'Nome da Empresa',
+                    child: TextFormField(
+                      controller: _razaoSocialController,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        hintText: 'Ex: Padaria do João',
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Obrigatório'
+                          : null,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _cnpjController,
-                    decoration: const InputDecoration(
-                      labelText: 'CNPJ (opcional)',
+                  const SizedBox(height: 16),
+                  CampoRotulado(
+                    rotulo: 'Nome fantasia (opcional)',
+                    child: TextFormField(
+                      controller: _nomeFantasiaController,
+                      decoration: const InputDecoration(
+                        hintText: 'Como o cliente te conhece',
+                      ),
                     ),
-                    keyboardType: TextInputType.number,
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _cpfController,
-                    decoration: const InputDecoration(
-                      labelText: 'CPF (opcional)',
+                  const SizedBox(height: 16),
+                  CampoRotulado(
+                    rotulo: 'CNPJ (opcional)',
+                    child: TextFormField(
+                      controller: _cnpjController,
+                      decoration: const InputDecoration(
+                        hintText: '00.000.000/0000-00',
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [CpfCnpjInputFormatter()],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        return cnpjValido(v) ? null : 'CNPJ inválido';
+                      },
                     ),
-                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  CampoRotulado(
+                    rotulo: 'CPF (opcional)',
+                    child: TextFormField(
+                      controller: _cpfController,
+                      decoration: const InputDecoration(
+                        hintText: '000.000.000-00',
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [CpfCnpjInputFormatter()],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        return cpfValido(v) ? null : 'CPF inválido';
+                      },
+                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),

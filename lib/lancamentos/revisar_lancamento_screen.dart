@@ -487,6 +487,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                               border: InputBorder.none,
                             ),
                             dropdownColor: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(12),
                             hint: Text(
                               _ehGasto
                                   ? 'Sem fornecedor vinculado'
@@ -499,12 +500,30 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                                   _ehGasto
                                       ? 'Sem fornecedor vinculado'
                                       : 'Sem cliente vinculado',
+                                  style: TextStyle(
+                                    color: _clienteId == null
+                                        ? AppColors.accent
+                                        : AppColors.textPrimary,
+                                    fontWeight: _clienteId == null
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
                                 ),
                               ),
                               for (final c in contatos)
                                 DropdownMenuItem(
                                   value: c['id'] as String,
-                                  child: Text(c['nome'] as String),
+                                  child: Text(
+                                    c['nome'] as String,
+                                    style: TextStyle(
+                                      color: _clienteId == c['id']
+                                          ? AppColors.accent
+                                          : AppColors.textPrimary,
+                                      fontWeight: _clienteId == c['id']
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
                                 ),
                             ],
                             onChanged: (v) => setState(() => _clienteId = v),

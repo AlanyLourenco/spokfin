@@ -138,12 +138,23 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                               border: InputBorder.none,
                             ),
                             dropdownColor: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(12),
                             hint: const Text('Selecione um cliente'),
                             items: [
                               for (final c in clientes)
                                 DropdownMenuItem(
                                   value: c['id'] as String,
-                                  child: Text(c['nome'] as String),
+                                  child: Text(
+                                    c['nome'] as String,
+                                    style: TextStyle(
+                                      color: _clienteId == c['id']
+                                          ? AppColors.accent
+                                          : AppColors.textPrimary,
+                                      fontWeight: _clienteId == c['id']
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
                                 ),
                             ],
                             onChanged: (v) => setState(() => _clienteId = v),

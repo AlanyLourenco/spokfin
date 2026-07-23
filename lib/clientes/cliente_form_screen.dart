@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../main.dart';
+import '../shared/campo_rotulado.dart';
+import '../shared/mascaras.dart';
+import '../theme.dart';
 
 const _tiposChavePix = {
   'cpf_cnpj': 'CPF/CNPJ',
@@ -29,6 +33,7 @@ class ClienteFormScreen extends StatefulWidget {
 }
 
 class _ClienteFormScreenState extends State<ClienteFormScreen> {
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nomeController;
   late final TextEditingController _telefoneController;
   late final TextEditingController _chavePixController;
@@ -63,12 +68,40 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
     super.dispose();
   }
 
-  Future<void> _salvar() async {
-    final nome = _nomeController.text.trim();
-    if (nome.isEmpty) {
-      setState(() => _error = 'Nome é obrigatório');
-      return;
+  List<TextInputFormatter> _formatadoresChavePix() {
+    switch (_tipoChavePix) {
+      case 'cpf_cnpj':
+        return [CpfCnpjInputFormatter()];
+      case 'telefone':
+        return [TelefoneInputFormatter()];
+      default:
+        return [];
     }
+  }
+
+  String? _validarChavePix(String? valor) {
+    final texto = (valor ?? '').trim();
+    if (texto.isEmpty) return null; // chave PIX é opcional
+
+    if (_tipoChavePix == null) {
+      return 'Selecione o tipo da chave';
+    }
+    switch (_tipoChavePix) {
+      case 'cpf_cnpj':
+        return cpfCnpjValido(texto) ? null : 'CPF/CNPJ inválido';
+      case 'telefone':
+        return telefoneValido(texto) ? null : 'Telefone inválido';
+      case 'email':
+        return emailValido(texto) ? null : 'E-mail inválido';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _salvar() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final nome = _nomeController.text.trim();
     setState(() {
       _loading = true;
       _error = null;
@@ -81,7 +114,8 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
             ? null
             : _telefoneController.text.trim(),
         if (_ehFornecedor) 'chave_pix': chavePix.isEmpty ? null : chavePix,
-        if (_ehFornecedor) 'tipo_chave_pix': chavePix.isEmpty ? null : _tipoChavePix,
+        if (_ehFornecedor)
+          'tipo_chave_pix': chavePix.isEmpty ? null : _tipoChavePix,
       };
       if (_editando) {
         await supabase
@@ -103,6 +137,10 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
     }
   }
 
+  InputDecoration _decoracao(String hint) {
+    return InputDecoration(hintText: hint);
+  }
+
   @override
   Widget build(BuildContext context) {
     final rotulo = _ehFornecedor ? 'Fornecedor' : 'Cliente';
@@ -115,71 +153,102 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
           constraints: const BoxConstraints(maxWidth: 400),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextField(
-                  controller: _nomeController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome / Empresa',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _telefoneController,
-                  decoration: const InputDecoration(labelText: 'Número'),
-                  keyboardType: TextInputType.phone,
-                ),
-                if (_ehFornecedor) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _chavePixController,
-                    decoration: const InputDecoration(
-                      labelText: 'Chave PIX do Fornecedor (opcional)',
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  CampoRotulado(
+                    rotulo: 'Nome / Empresa',
+                    child: TextFormField(
+                      controller: _nomeController,
+                      decoration: _decoracao('Ex: João Mendes'),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Informe o nome'
+                          : null,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _tipoChavePix,
-                    decoration: const InputDecoration(
-                      labelText: 'Tipo da Chave',
+                  const SizedBox(height: 16),
+                  CampoRotulado(
+                    rotulo: 'Número',
+                    child: TextFormField(
+                      controller: _telefoneController,
+                      decoration: _decoracao('(00) 00000-0000'),
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [TelefoneInputFormatter()],
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        return telefoneValido(v) ? null : 'Telefone inválido';
+                      },
                     ),
-                    hint: const Text('Selecione o tipo'),
-                    items: [
-                      for (final entrada in _tiposChavePix.entries)
-                        DropdownMenuItem(
-                          value: entrada.key,
-                          child: Text(entrada.value),
-                        ),
-                    ],
-                    onChanged: (v) => setState(() => _tipoChavePix = v),
+                  ),
+                  if (_ehFornecedor) ...[
+                    const SizedBox(height: 16),
+                    CampoRotulado(
+                      rotulo: 'Chave PIX do Fornecedor (opcional)',
+                      child: TextFormField(
+                        controller: _chavePixController,
+                        decoration: _decoracao('Digite a chave PIX'),
+                        inputFormatters: _formatadoresChavePix(),
+                        validator: _validarChavePix,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    CampoRotulado(
+                      rotulo: 'Tipo da Chave',
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _tipoChavePix,
+                        decoration: _decoracao('Selecione o tipo'),
+                        dropdownColor: AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(12),
+                        items: [
+                          for (final entrada in _tiposChavePix.entries)
+                            DropdownMenuItem(
+                              value: entrada.key,
+                              child: Text(
+                                entrada.value,
+                                style: TextStyle(
+                                  color: _tipoChavePix == entrada.key
+                                      ? AppColors.accent
+                                      : AppColors.textPrimary,
+                                  fontWeight: _tipoChavePix == entrada.key
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                        ],
+                        onChanged: (v) => setState(() => _tipoChavePix = v),
+                      ),
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _loading ? null : _salvar,
+                    child: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _editando
+                                ? 'Salvar Alterações'
+                                : 'Salvar $rotulo',
+                          ),
                   ),
                 ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading ? null : _salvar,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          _editando
-                              ? 'Salvar Alterações'
-                              : 'Salvar $rotulo',
-                        ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

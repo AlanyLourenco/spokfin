@@ -799,17 +799,41 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                   contentPadding: EdgeInsets.zero,
                 ),
                 dropdownColor: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(12),
                 style: const TextStyle(color: AppColors.textPrimary),
                 hint: Text(
                   semVinculo,
                   style: const TextStyle(color: AppColors.textMuted),
                 ),
                 items: [
-                  DropdownMenuItem(value: null, child: Text(semVinculo)),
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text(
+                      semVinculo,
+                      style: TextStyle(
+                        color: _clienteId == null
+                            ? AppColors.accent
+                            : AppColors.textPrimary,
+                        fontWeight: _clienteId == null
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ),
                   for (final c in clientes)
                     DropdownMenuItem(
                       value: c['id'] as String,
-                      child: Text(c['nome'] as String),
+                      child: Text(
+                        c['nome'] as String,
+                        style: TextStyle(
+                          color: _clienteId == c['id']
+                              ? AppColors.accent
+                              : AppColors.textPrimary,
+                          fontWeight: _clienteId == c['id']
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
                     ),
                 ],
                 onChanged: (v) => setState(() => _clienteId = v),
