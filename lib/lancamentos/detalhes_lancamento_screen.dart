@@ -333,68 +333,75 @@ class _LancamentoModalState extends State<_LancamentoModal> {
 
   @override
   Widget build(BuildContext context) {
+    final teclado = MediaQuery.of(context).viewInsets.bottom;
     return ConstrainedBox(
       constraints: BoxConstraints(
         maxWidth: 480,
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
+        maxHeight: MediaQuery.of(context).size.height * 0.9 - teclado,
       ),
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: AppColors.hairline),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _editando
-                            ? 'Editar Lançamento'
-                            : 'Detalhes do Lançamento',
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(24),
+            ),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _editando
+                              ? 'Editar Lançamento'
+                              : 'Detalhes do Lançamento',
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                         ),
                       ),
-                    ),
-                    if (!_editando) ...[
+                      if (!_editando) ...[
+                        _CircularIconButton(
+                          icon: Icons.edit_outlined,
+                          onTap: _loading ? null : _entrarModoEdicao,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       _CircularIconButton(
-                        icon: Icons.edit_outlined,
-                        onTap: _loading ? null : _entrarModoEdicao,
+                        icon: Icons.close,
+                        onTap: _loading ? null : _fechar,
                       ),
-                      const SizedBox(width: 8),
                     ],
-                    _CircularIconButton(
-                      icon: Icons.close,
-                      onTap: _loading ? null : _fechar,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(color: AppColors.hairline, height: 1),
-              Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: _editando ? _buildEditBody() : _buildViewBody(),
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: _editando ? _buildEditFooter() : _buildViewFooter(),
-              ),
-            ],
+                const Divider(color: AppColors.hairline, height: 1),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: _editando ? _buildEditBody() : _buildViewBody(),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: _editando ? _buildEditFooter() : _buildViewFooter(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
