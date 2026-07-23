@@ -332,41 +332,47 @@ class _HomeTabContentState extends State<HomeTabContent> {
             children: [
               SafeArea(
                 bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'spokfin',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _abrirMenuPerfil,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.surfaceAlt,
-                            border: Border.all(color: AppColors.hairline),
+                child: SizedBox(
+                  height: 52,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'spokfin',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
                           ),
-                          child: Text(
-                            _iniciais,
-                            style: const TextStyle(
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                        ),
+                        GestureDetector(
+                          onTap: _abrirMenuPerfil,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.surfaceAlt,
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: Text(
+                              _iniciais,
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -423,6 +429,10 @@ class _HomeTabContentState extends State<HomeTabContent> {
                       const SizedBox(height: 16),
                       AppCard(
                         borderRadius: 24,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 16,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -431,7 +441,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                 Icon(
                                   Icons.warning_amber_rounded,
                                   color: AppColors.negative,
-                                  size: 18,
+                                  size: 16,
                                 ),
                                 SizedBox(width: 6),
                                 Text(
@@ -444,7 +454,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 2),
                             for (final l in dados.vencendoEmBreve)
                               _LancamentoTile(
                                 lancamento: l,
