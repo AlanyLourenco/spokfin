@@ -45,6 +45,7 @@ class BalancoScreen extends StatefulWidget {
 
 class _BalancoScreenState extends State<BalancoScreen> {
   DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTimeRange? _periodoPersonalizado;
   late Future<_BalancoDados> _future;
 
   @override
@@ -65,7 +66,8 @@ class _BalancoScreenState extends State<BalancoScreen> {
   }
 
   Future<void> _abrirSeletorMes() async {
-    final opcoes = List.generate(12, (i) => DateTime(_mes.year, _mes.month - i));
+    final agora = DateTime.now();
+    final opcoes = List.generate(12, (i) => DateTime(agora.year, agora.month - i));
     await showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -74,28 +76,73 @@ class _BalancoScreenState extends State<BalancoScreen> {
       ),
       builder: (context) => SafeArea(
         child: SizedBox(
-          height: 360,
+          height: 400,
           child: ListView(
             children: [
               for (final m in opcoes)
                 ListTile(
                   title: Text('${_nomesMesesCompletos[m.month - 1]} de ${m.year}'),
-                  trailing: (m.year == _mes.year && m.month == _mes.month)
+                  trailing:
+                      _periodoPersonalizado == null &&
+                          m.year == _mes.year &&
+                          m.month == _mes.month
                       ? const Icon(Icons.check, color: AppColors.accent)
                       : null,
                   onTap: () {
                     setState(() {
                       _mes = DateTime(m.year, m.month);
+                      _periodoPersonalizado = null;
                       _future = _carregar();
                     });
                     Navigator.of(context).pop();
                   },
                 ),
+              const Divider(color: AppColors.hairline, height: 1),
+              ListTile(
+                title: const Text('Período personalizado...'),
+                trailing: _periodoPersonalizado != null
+                    ? const Icon(Icons.check, color: AppColors.accent)
+                    : null,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _escolherPeriodoPersonalizado();
+                },
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _escolherPeriodoPersonalizado() async {
+    final agora = DateTime.now();
+    final intervalo = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(agora.year - 5),
+      lastDate: DateTime(agora.year + 1),
+      initialDateRange: _periodoPersonalizado,
+      cancelText: 'Cancelar',
+      confirmText: 'Usar',
+    );
+    if (intervalo != null) {
+      setState(() {
+        _periodoPersonalizado = intervalo;
+        _future = _carregar();
+      });
+    }
+  }
+
+  String _rotuloPeriodo() {
+    final periodo = _periodoPersonalizado;
+    if (periodo != null) {
+      return '${_formatarDataCurta(periodo.start)} - ${_formatarDataCurta(periodo.end)}';
+    }
+    return '${_nomesMesesCompletos[_mes.month - 1]} de ${_mes.year}';
+  }
+
+  String _formatarDataCurta(DateTime d) {
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
   }
 
   Future<void> _abrirDetalhes(_LancamentoMes item) async {
@@ -120,9 +167,17 @@ class _BalancoScreenState extends State<BalancoScreen> {
   }
 
   Future<_BalancoDados> _carregar() async {
-    final inicio = DateTime(_mes.year, _mes.month, 1);
-    final fim = DateTime(_mes.year, _mes.month + 1, 1);
-    final diasNoMes = fim.subtract(const Duration(days: 1)).day;
+    final DateTime inicio;
+    final DateTime fim;
+    final periodo = _periodoPersonalizado;
+    if (periodo != null) {
+      inicio = DateTime(periodo.start.year, periodo.start.month, periodo.start.day);
+      fim = DateTime(periodo.end.year, periodo.end.month, periodo.end.day + 1);
+    } else {
+      inicio = DateTime(_mes.year, _mes.month, 1);
+      fim = DateTime(_mes.year, _mes.month + 1, 1);
+    }
+    final agruparPorMes = fim.difference(inicio).inDays > 31;
 
     final transacoes = await supabase
         .from('transacoes')
@@ -150,14 +205,15 @@ class _BalancoScreenState extends State<BalancoScreen> {
 
     double receitas = 0;
     double despesas = 0;
-    final entradaPorDia = <int, double>{};
-    final saidaPorDia = <int, double>{};
+    final entradaPorDia = <DateTime, double>{};
+    final saidaPorDia = <DateTime, double>{};
     final categoriaTotais = <String, double>{};
     final lancamentos = <_LancamentoMes>[];
 
     for (final t in transacoes) {
       final valor = (t['valor'] as num).toDouble();
       final data = DateTime.parse(t['data_transacao'] as String);
+      final diaChave = DateTime(data.year, data.month, data.day);
       final tipo = t['tipo'] as String;
       final categoriaBruta = (t['categoria'] as String?)?.trim();
       final categoria = (categoriaBruta == null || categoriaBruta.isEmpty)
@@ -166,10 +222,10 @@ class _BalancoScreenState extends State<BalancoScreen> {
 
       if (tipo == 'entrada') {
         receitas += valor;
-        entradaPorDia[data.day] = (entradaPorDia[data.day] ?? 0) + valor;
+        entradaPorDia[diaChave] = (entradaPorDia[diaChave] ?? 0) + valor;
       } else {
         despesas += valor;
-        saidaPorDia[data.day] = (saidaPorDia[data.day] ?? 0) + valor;
+        saidaPorDia[diaChave] = (saidaPorDia[diaChave] ?? 0) + valor;
         categoriaTotais[categoria] = (categoriaTotais[categoria] ?? 0) + valor;
       }
 
@@ -195,12 +251,51 @@ class _BalancoScreenState extends State<BalancoScreen> {
             .toList()
           ..sort((a, b) => b.valor.compareTo(a.valor));
 
+    final List<_BarraValor> barras;
+    if (!agruparPorMes) {
+      barras = [
+        for (var d = inicio; d.isBefore(fim); d = d.add(const Duration(days: 1)))
+          _BarraValor(
+            rotulo:
+                '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+            entrada: entradaPorDia[d] ?? 0,
+            saida: saidaPorDia[d] ?? 0,
+          ),
+      ];
+    } else {
+      final entradaPorMes = <DateTime, double>{};
+      final saidaPorMes = <DateTime, double>{};
+      entradaPorDia.forEach((d, v) {
+        final chave = DateTime(d.year, d.month);
+        entradaPorMes[chave] = (entradaPorMes[chave] ?? 0) + v;
+      });
+      saidaPorDia.forEach((d, v) {
+        final chave = DateTime(d.year, d.month);
+        saidaPorMes[chave] = (saidaPorMes[chave] ?? 0) + v;
+      });
+      final ultimoDiaIncluso = fim.subtract(const Duration(days: 1));
+      final ultimoMes = DateTime(ultimoDiaIncluso.year, ultimoDiaIncluso.month);
+      final cruzaAno = inicio.year != ultimoMes.year;
+      barras = [
+        for (
+          var m = DateTime(inicio.year, inicio.month);
+          !m.isAfter(ultimoMes);
+          m = DateTime(m.year, m.month + 1)
+        )
+          _BarraValor(
+            rotulo: cruzaAno
+                ? '${_nomesMesesCompletos[m.month - 1].substring(0, 3)}/${m.year.toString().substring(2)}'
+                : _nomesMesesCompletos[m.month - 1].substring(0, 3),
+            entrada: entradaPorMes[m] ?? 0,
+            saida: saidaPorMes[m] ?? 0,
+          ),
+      ];
+    }
+
     return _BalancoDados(
       receitas: receitas,
       despesas: despesas,
-      entradaPorDia: entradaPorDia,
-      saidaPorDia: saidaPorDia,
-      diasNoMes: diasNoMes,
+      barras: barras,
       categoriasDespesa: categoriasDespesa,
       lancamentos: lancamentos,
     );
@@ -263,7 +358,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '${_nomesMesesCompletos[_mes.month - 1]} de ${_mes.year}',
+                                _rotuloPeriodo(),
                                 style: const TextStyle(
                                   color: AppColors.textPrimary,
                                   fontWeight: FontWeight.w600,
@@ -398,11 +493,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          _EntradasSaidasChart(
-                            entradaPorDia: dados.entradaPorDia,
-                            saidaPorDia: dados.saidaPorDia,
-                            diasNoMes: dados.diasNoMes,
-                          ),
+                          _EntradasSaidasChart(barras: dados.barras),
                         ],
                       ),
                     ),
@@ -422,12 +513,16 @@ class _BalancoScreenState extends State<BalancoScreen> {
                           ),
                           const SizedBox(height: 16),
                           if (dados.categoriasDespesa.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Center(
                                 child: Text(
-                                  'Nenhum gasto registrado neste mês',
-                                  style: TextStyle(color: AppColors.textMuted),
+                                  _periodoPersonalizado != null
+                                      ? 'Nenhum gasto registrado neste período'
+                                      : 'Nenhum gasto registrado neste mês',
+                                  style: const TextStyle(
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                               ),
                             )
@@ -571,7 +666,9 @@ class _BalancoScreenState extends State<BalancoScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'LANÇAMENTOS DE ${_nomesMesesCompletos[_mes.month - 1]} DE ${_mes.year}'
+                      (_periodoPersonalizado != null
+                              ? 'LANÇAMENTOS DO PERÍODO'
+                              : 'LANÇAMENTOS DE ${_nomesMesesCompletos[_mes.month - 1]} DE ${_mes.year}')
                           .toUpperCase(),
                       style: const TextStyle(
                         color: AppColors.textMuted,
@@ -582,12 +679,14 @@ class _BalancoScreenState extends State<BalancoScreen> {
                     ),
                     const SizedBox(height: 4),
                     if (dados.lancamentos.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(
                           child: Text(
-                            'Nenhum lançamento neste mês',
-                            style: TextStyle(color: AppColors.textMuted),
+                            _periodoPersonalizado != null
+                                ? 'Nenhum lançamento neste período'
+                                : 'Nenhum lançamento neste mês',
+                            style: const TextStyle(color: AppColors.textMuted),
                           ),
                         ),
                       )
@@ -630,20 +729,24 @@ class _BalancoDados {
   _BalancoDados({
     required this.receitas,
     required this.despesas,
-    required this.entradaPorDia,
-    required this.saidaPorDia,
-    required this.diasNoMes,
+    required this.barras,
     required this.categoriasDespesa,
     required this.lancamentos,
   });
 
   final double receitas;
   final double despesas;
-  final Map<int, double> entradaPorDia;
-  final Map<int, double> saidaPorDia;
-  final int diasNoMes;
+  final List<_BarraValor> barras;
   final List<_CategoriaValor> categoriasDespesa;
   final List<_LancamentoMes> lancamentos;
+}
+
+class _BarraValor {
+  _BarraValor({required this.rotulo, required this.entrada, required this.saida});
+
+  final String rotulo;
+  final double entrada;
+  final double saida;
 }
 
 class _CategoriaValor {
@@ -678,21 +781,14 @@ class _LancamentoMes {
 }
 
 class _EntradasSaidasChart extends StatelessWidget {
-  const _EntradasSaidasChart({
-    required this.entradaPorDia,
-    required this.saidaPorDia,
-    required this.diasNoMes,
-  });
+  const _EntradasSaidasChart({required this.barras});
 
-  final Map<int, double> entradaPorDia;
-  final Map<int, double> saidaPorDia;
-  final int diasNoMes;
+  final List<_BarraValor> barras;
 
   @override
   Widget build(BuildContext context) {
     final maximo = [
-      ...entradaPorDia.values,
-      ...saidaPorDia.values,
+      for (final b in barras) ...[b.entrada, b.saida],
     ].fold<double>(1, (m, v) => v > m ? v : m);
 
     return Column(
@@ -702,7 +798,7 @@ class _EntradasSaidasChart extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              for (var dia = 1; dia <= diasNoMes; dia++)
+              for (final b in barras)
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 0.6),
@@ -711,9 +807,7 @@ class _EntradasSaidasChart extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Container(
-                            height:
-                                3 +
-                                ((entradaPorDia[dia] ?? 0) / maximo) * 60,
+                            height: 3 + (b.entrada / maximo) * 60,
                             decoration: BoxDecoration(
                               color: AppColors.accent,
                               borderRadius: BorderRadius.circular(2),
@@ -723,7 +817,7 @@ class _EntradasSaidasChart extends StatelessWidget {
                         const SizedBox(width: 1),
                         Expanded(
                           child: Container(
-                            height: 3 + ((saidaPorDia[dia] ?? 0) / maximo) * 60,
+                            height: 3 + (b.saida / maximo) * 60,
                             decoration: BoxDecoration(
                               color: AppColors.negative,
                               borderRadius: BorderRadius.circular(2),
@@ -738,24 +832,29 @@ class _EntradasSaidasChart extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Row(
-          children: [
-            const Text(
-              '01',
-              style: TextStyle(fontSize: 9, color: AppColors.textMuted),
-            ),
-            const Spacer(),
-            Text(
-              (diasNoMes / 2).round().toString().padLeft(2, '0'),
-              style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
-            ),
-            const Spacer(),
-            Text(
-              '$diasNoMes',
-              style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
-            ),
-          ],
-        ),
+        if (barras.isNotEmpty)
+          Row(
+            children: [
+              Text(
+                barras.first.rotulo,
+                style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+              ),
+              const Spacer(),
+              if (barras.length > 2)
+                Text(
+                  barras[barras.length ~/ 2].rotulo,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              const Spacer(),
+              Text(
+                barras.last.rotulo,
+                style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+              ),
+            ],
+          ),
       ],
     );
   }
