@@ -428,6 +428,11 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                           onTap: _loading ? null : _entrarModoEdicao,
                         ),
                         const SizedBox(width: 8),
+                        _CircularIconButton(
+                          icon: Icons.delete_outline,
+                          onTap: _loading ? null : _confirmarExclusao,
+                        ),
+                        const SizedBox(width: 8),
                       ],
                       _CircularIconButton(
                         icon: Icons.close,
@@ -555,17 +560,6 @@ class _LancamentoModalState extends State<_LancamentoModal> {
             ),
           ),
         ],
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: _loading ? null : _confirmarExclusao,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.negative,
-            side: const BorderSide(color: AppColors.negative),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-          icon: const Icon(Icons.delete_outline, size: 18),
-          label: const Text('Excluir Lançamento'),
-        ),
       ],
     );
   }
