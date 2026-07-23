@@ -59,9 +59,8 @@ Como MEI, quero registrar um ganho/gasto em poucos toques, direto da Home, para 
 Como MEI, quero ser avisado visualmente quando uma conta está perto de vencer (antes de virar "atrasado"), para me planejar e não ser pego de surpresa.
 - Card "Vencendo em Breve" na Home, com contas pendentes vencendo nos próximos 3 dias (`_diasAlertaVencimento` em `home_screen.dart`), tocável para abrir Detalhes.
 
-### 3.5 Gráfico de evolução do saldo ✅
-Como MEI, quero ver a tendência do meu saldo ao longo dos últimos meses, para entender se estou crescendo ou encolhendo.
-- Card "Evolução do Saldo" na Home: mini-gráfico de barras (`_SaldoMesChart`) com o líquido mensal (entradas − saídas) dos últimos 6 meses, barra verde/vermelha conforme o sinal.
+### 3.5 Gráfico de evolução do saldo 🔭 (removido da Home)
+Chegou a ser implementado (`_SaldoMesChart`), mas foi removido da Home no refactor visual "Cosmic Minimalism" — a referência de design explícita pediu para tirar o gráfico da tela para deixá-la mais limpa. Pode voltar como uma seção própria (ex: dentro do Balanço) se fizer sentido depois.
 
 ---
 
@@ -203,12 +202,12 @@ Como MEI, quero ver um resumo do mês (receitas x despesas x lucro líquido), pa
 
 ---
 
-## 11. Notificações e lembretes ✅ (versão in-app)
+## 11. Notificações e lembretes ⚠️ (parcial)
 
 Como MEI, quero ser avisado dentro do app quando:
-- uma conta a pagar/receber está perto de vencer — card "Vencendo em Breve" na Home ([3.4](#34-alerta-de-vencimento-próximo-)).
-- uma assinatura (MRR) atrasou o pagamento do mês — novo card "Assinaturas Atrasadas" na Home, lista `assinaturas_com_status` com `status_mes_atual = 'atrasado'`, toque abre a Ficha do Assinante.
-- Push/notificação nativa do sistema operacional (fora do app aberto) continua fora de escopo — isso exigiria um `design.md` próprio (permissões, agendamento, `flutter_local_notifications` ou similar) se/quando for priorizado.
+- uma conta a pagar/receber está perto de vencer — card "Vencendo em Breve" na Home ([3.4](#34-alerta-de-vencimento-próximo-)). ✅ Mantido.
+- uma assinatura (MRR) atrasou o pagamento do mês — chegou a existir um card "Assinaturas Atrasadas" na Home, mas foi **removido** no refactor visual "Cosmic Minimalism" (a referência de design pediu para tirar o alerta de assinaturas da Home). O dado ainda existe (`assinaturas_com_status` com `status_mes_atual = 'atrasado'`) — só não há mais superfície de UI mostrando isso; hoje o único jeito de ver assinaturas atrasadas é abrindo a aba MRR.
+- Push/notificação nativa do sistema operacional continua fora de escopo — isso exigiria um `design.md` próprio (permissões, agendamento, `flutter_local_notifications` ou similar) se/quando for priorizado.
 
 ---
 

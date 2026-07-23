@@ -7,10 +7,24 @@ import '../lancamentos/ia_service.dart';
 import '../lancamentos/lancamento_detalhado.dart';
 import '../lancamentos/revisar_lancamento_screen.dart';
 import '../main.dart';
-import '../mrr/ficha_assinante_screen.dart';
 import '../shared/app_card.dart';
-import '../shared/formatters.dart';
 import '../theme.dart';
+
+/// Formato "$ 1,250.00" usado especificamente na Home, seguindo à risca a
+/// referência de design da tela — as demais telas usam `formatarMoeda`
+/// (R$ 1.250,00, padrão brasileiro).
+String _formatarValor(num valor) {
+  final negativo = valor < 0;
+  final absoluto = valor.abs();
+  final partes = absoluto.toStringAsFixed(2).split('.');
+  final inteiro = partes[0];
+  final buffer = StringBuffer();
+  for (var i = 0; i < inteiro.length; i++) {
+    if (i > 0 && (inteiro.length - i) % 3 == 0) buffer.write(',');
+    buffer.write(inteiro[i]);
+  }
+  return '${negativo ? '-' : ''}\$ $buffer.${partes[1]}';
+}
 
 class _LancamentoResumo {
   _LancamentoResumo({
@@ -126,12 +140,6 @@ class _HomeTabContentState extends State<HomeTabContent> {
         .lte('vencimento', limiteVencimento.toIso8601String().split('T').first)
         .order('vencimento');
 
-    final assinaturasAtrasadasRows = await supabase
-        .from('assinaturas_com_status')
-        .select()
-        .eq('empresa_id', widget.empresaId)
-        .eq('status_mes_atual', 'atrasado');
-
     final clienteIds = <String>{
       for (final t in transacoes)
         if (t['cliente_id'] != null) t['cliente_id'] as String,
@@ -139,7 +147,6 @@ class _HomeTabContentState extends State<HomeTabContent> {
         if (c['cliente_id'] != null) c['cliente_id'] as String,
       for (final c in vencendoRows)
         if (c['cliente_id'] != null) c['cliente_id'] as String,
-      for (final a in assinaturasAtrasadasRows) a['cliente_id'] as String,
     }.toList();
 
     final clientes = clienteIds.isEmpty
@@ -200,47 +207,12 @@ class _HomeTabContentState extends State<HomeTabContent> {
       for (final c in vencendoRows) construirResumoConta(c),
     ]..sort((a, b) => a.data.compareTo(b.data));
 
-    final inicioJanela = DateTime(hoje.year, hoje.month - 5, 1);
-    final transacoesJanela = await supabase
-        .from('transacoes')
-        .select('tipo, valor, data_transacao')
-        .eq('empresa_id', widget.empresaId)
-        .gte(
-          'data_transacao',
-          inicioJanela.toIso8601String().split('T').first,
-        );
-
-    final mesesJanela = List.generate(
-      6,
-      (i) => DateTime(hoje.year, hoje.month - (5 - i)),
-    );
-    final netPorMes = {
-      for (final m in mesesJanela) '${m.year}-${m.month}': 0.0,
-    };
-    for (final t in transacoesJanela) {
-      final data = DateTime.parse(t['data_transacao'] as String);
-      final chave = '${data.year}-${data.month}';
-      if (netPorMes.containsKey(chave)) {
-        final valor = (t['valor'] as num).toDouble();
-        netPorMes[chave] =
-            netPorMes[chave]! + (t['tipo'] == 'entrada' ? valor : -valor);
-      }
-    }
-
-    final assinaturasAtrasadas = [
-      for (final a in assinaturasAtrasadasRows)
-        {...a, 'cliente_nome': nomesPorId[a['cliente_id']] ?? '—'},
-    ];
-
     return _HomeData(
       saldo: (saldo as num).toDouble(),
       aReceber: aReceber,
       aPagar: aPagar,
       recentes: recentes.take(5).toList(),
       vencendoEmBreve: vencendoEmBreve,
-      assinaturasAtrasadas: assinaturasAtrasadas,
-      evolucaoSaldo: mesesJanela.map((m) => netPorMes['${m.year}-${m.month}']!).toList(),
-      rotulosMeses: mesesJanela.map((m) => _nomesMeses[m.month - 1]).toList(),
     );
   }
 
@@ -305,15 +277,6 @@ class _HomeTabContentState extends State<HomeTabContent> {
     if (alterou == true) _recarregar();
   }
 
-  Future<void> _abrirFichaAssinante(Map<String, dynamic> assinatura) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FichaAssinanteScreen(assinatura: assinatura),
-      ),
-    );
-    _recarregar();
-  }
-
   String get _iniciais {
     final nome = widget.nomeExibicao.trim();
     if (nome.isEmpty) return '?';
@@ -342,7 +305,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 child: Text(
                   _iniciais,
                   style: const TextStyle(
-                    color: AppColors.accent,
+                    color: AppColors.textMuted,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -352,7 +315,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
-            const Divider(color: AppColors.border, height: 1),
+            const Divider(color: AppColors.hairline, height: 1),
             ListTile(
               leading: const Icon(Icons.logout, color: AppColors.negative),
               title: const Text(
@@ -388,28 +351,34 @@ class _HomeTabContentState extends State<HomeTabContent> {
               SafeArea(
                 bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'spokfin',
                         style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
                       GestureDetector(
                         onTap: _abrirMenuPerfil,
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: AppColors.surfaceAlt,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.surfaceAlt,
+                            border: Border.all(color: AppColors.hairline),
+                          ),
                           child: Text(
                             _iniciais,
                             style: const TextStyle(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
                           ),
@@ -421,9 +390,11 @@ class _HomeTabContentState extends State<HomeTabContent> {
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   children: [
                     AppCard(
+                      borderRadius: 24,
+                      padding: const EdgeInsets.all(24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -432,15 +403,19 @@ class _HomeTabContentState extends State<HomeTabContent> {
                             style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 12,
+                              letterSpacing: 1.2,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Text(
-                            formatarMoeda(dados.saldo),
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
+                            _formatarValor(dados.saldo),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           Row(
                             children: [
                               Expanded(
@@ -465,6 +440,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                     if (dados.vencendoEmBreve.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       AppCard(
+                        borderRadius: 24,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -496,100 +472,34 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         ),
                       ),
                     ],
-                    if (dados.assinaturasAtrasadas.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      AppCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: AppColors.negative,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'ASSINATURAS ATRASADAS',
-                                  style: TextStyle(
-                                    color: AppColors.negative,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            for (final a in dados.assinaturasAtrasadas)
-                              InkWell(
-                                onTap: () => _abrirFichaAssinante(a),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          a['cliente_nome'] as String,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                      Text(
-                                        '${formatarMoeda(a['valor_mensalidade'] as num)}/mês',
-                                        style: const TextStyle(
-                                          color: AppColors.negative,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'EVOLUÇÃO DO SALDO',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _SaldoMesChart(
-                            valores: dados.evolucaoSaldo,
-                            rotulos: dados.rotulosMeses,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
                           'Lançamentos Recentes',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         if (widget.onVerHistorico != null)
                           TextButton(
                             onPressed: widget.onVerHistorico,
                             style: TextButton.styleFrom(
                               foregroundColor: AppColors.accent,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text('Ver tudo'),
+                            child: const Text(
+                              'Ver tudo',
+                              style: TextStyle(fontSize: 14),
+                            ),
                           ),
                       ],
                     ),
-                    const SizedBox(height: 4),
                     if (dados.recentes.isEmpty)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
@@ -607,7 +517,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                           onTap: () => _abrirDetalhes(dados.recentes[i]),
                         ),
                         if (i < dados.recentes.length - 1)
-                          const Divider(color: AppColors.border, height: 1),
+                          const Divider(color: AppColors.hairline, height: 1),
                       ],
                   ],
                 ),
@@ -617,18 +527,17 @@ class _HomeTabContentState extends State<HomeTabContent> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   child: Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceAlt,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: AppColors.border),
                     ),
                     child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
+                            horizontal: 24,
+                            vertical: 12,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.accent,
@@ -640,12 +549,16 @@ class _HomeTabContentState extends State<HomeTabContent> {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.mic, size: 18, color: Colors.black),
+                                Icon(
+                                  Icons.mic,
+                                  size: 18,
+                                  color: AppColors.background,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'Falar',
                                   style: TextStyle(
-                                    color: Colors.black,
+                                    color: AppColors.background,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -667,7 +580,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                     size: 18,
                                     color: AppColors.textPrimary,
                                   ),
-                                  SizedBox(width: 6),
+                                  SizedBox(width: 8),
                                   Text(
                                     'Anotar',
                                     style: TextStyle(
@@ -693,7 +606,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                     size: 18,
                                     color: AppColors.textPrimary,
                                   ),
-                                  SizedBox(width: 6),
+                                  SizedBox(width: 8),
                                   Text(
                                     'Manual',
                                     style: TextStyle(
@@ -719,21 +632,6 @@ class _HomeTabContentState extends State<HomeTabContent> {
   }
 }
 
-const _nomesMeses = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Abr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Set',
-  'Out',
-  'Nov',
-  'Dez',
-];
-
 class _HomeData {
   _HomeData({
     required this.saldo,
@@ -741,9 +639,6 @@ class _HomeData {
     required this.aPagar,
     required this.recentes,
     required this.vencendoEmBreve,
-    required this.assinaturasAtrasadas,
-    required this.evolucaoSaldo,
-    required this.rotulosMeses,
   });
 
   final double saldo;
@@ -751,9 +646,6 @@ class _HomeData {
   final double aPagar;
   final List<_LancamentoResumo> recentes;
   final List<_LancamentoResumo> vencendoEmBreve;
-  final List<Map<String, dynamic>> assinaturasAtrasadas;
-  final List<double> evolucaoSaldo;
-  final List<String> rotulosMeses;
 }
 
 class _MiniStat extends StatelessWidget {
@@ -778,68 +670,14 @@ class _MiniStat extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          formatarMoeda(valor),
+          _formatarValor(valor),
           style: TextStyle(
             color: cor,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 18,
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SaldoMesChart extends StatelessWidget {
-  const _SaldoMesChart({required this.valores, required this.rotulos});
-
-  final List<double> valores;
-  final List<String> rotulos;
-
-  @override
-  Widget build(BuildContext context) {
-    final maximo = valores.isEmpty
-        ? 1.0
-        : valores
-              .map((v) => v.abs())
-              .reduce((a, b) => a > b ? a : b)
-              .clamp(1.0, double.infinity);
-    return SizedBox(
-      height: 70,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          for (var i = 0; i < valores.length; i++)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 6 + (valores[i].abs() / maximo) * 34,
-                      decoration: BoxDecoration(
-                        color: valores[i] >= 0
-                            ? AppColors.accent
-                            : AppColors.negative,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      rotulos[i],
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }
@@ -863,7 +701,7 @@ class _LancamentoTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(
           children: [
             Expanded(
@@ -872,7 +710,11 @@ class _LancamentoTile extends StatelessWidget {
                 children: [
                   Text(
                     lancamento.descricao,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Row(
@@ -889,10 +731,11 @@ class _LancamentoTile extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
-                            vertical: 3,
+                            vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.accent.withValues(alpha: 0.15),
+                            color: Colors.transparent,
+                            border: Border.all(color: AppColors.accent),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Row(
@@ -922,8 +765,12 @@ class _LancamentoTile extends StatelessWidget {
               ),
             ),
             Text(
-              '$sinal ${formatarMoeda(lancamento.valor)}',
-              style: TextStyle(color: cor, fontWeight: FontWeight.bold),
+              '$sinal ${_formatarValor(lancamento.valor)}',
+              style: TextStyle(
+                color: cor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
           ],
         ),

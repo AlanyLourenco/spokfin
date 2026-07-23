@@ -69,7 +69,7 @@ class _MainShellState extends State<MainShell> {
           : QuickActionsSpeedDial(empresaId: widget.empresaId),
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.background,
           indicatorColor: AppColors.accent,
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
@@ -82,7 +82,7 @@ class _MainShellState extends State<MainShell> {
           iconTheme: WidgetStateProperty.resolveWith(
             (states) => IconThemeData(
               color: states.contains(WidgetState.selected)
-                  ? Colors.black
+                  ? AppColors.background
                   : AppColors.textMuted,
             ),
           ),
