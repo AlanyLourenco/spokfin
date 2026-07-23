@@ -7,6 +7,7 @@ import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 
 const _tamanhoPagina = 30;
@@ -81,10 +82,12 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   void initState() {
     super.initState();
     _carregar();
+    lancamentosAtualizados.addListener(_recarregar);
   }
 
   @override
   void dispose() {
+    lancamentosAtualizados.removeListener(_recarregar);
     _buscaController.dispose();
     super.dispose();
   }

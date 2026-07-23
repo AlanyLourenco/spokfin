@@ -9,6 +9,7 @@ import '../lancamentos/revisar_lancamento_screen.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 
 class _LancamentoResumo {
@@ -64,6 +65,13 @@ class _HomeTabContentState extends State<HomeTabContent> {
   void initState() {
     super.initState();
     _dataFuture = _carregar();
+    lancamentosAtualizados.addListener(_recarregar);
+  }
+
+  @override
+  void dispose() {
+    lancamentosAtualizados.removeListener(_recarregar);
+    super.dispose();
   }
 
   void _recarregar() {

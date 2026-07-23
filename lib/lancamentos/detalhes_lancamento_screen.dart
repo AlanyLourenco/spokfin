@@ -4,18 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
+import 'categorias.dart';
 import 'lancamento_detalhado.dart';
 import 'recibo_dialog.dart';
-
-const _categoriasPadrao = [
-  'Venda',
-  'Empréstimo',
-  'Aula',
-  'Consultoria',
-  'Serviço',
-  'Outros',
-];
 
 /// Abre os Detalhes de um lançamento como um modal deslizante de baixo pra
 /// cima, com fundo desfocado — pode transicionar internamente pro estado de
@@ -94,6 +87,10 @@ class _LancamentoModalState extends State<_LancamentoModal> {
   bool get _pago => _lancamento.status == 'pago';
   bool get _entrada => _lancamento.tipo == 'entrada';
   bool get _notaFiscalPendente => _lancamento.notaFiscalStatus == 'pendente';
+  bool get _ehGastoEdicao => _tipo == 'saida';
+  String get _tipoContatoEdicao => _ehGastoEdicao ? 'fornecedor' : 'cliente';
+  List<String> get _categoriasBaseEdicao =>
+      _ehGastoEdicao ? categoriasDespesa : categoriasReceita;
 
   @override
   void initState() {
@@ -127,8 +124,19 @@ class _LancamentoModalState extends State<_LancamentoModal> {
         .select('id, nome')
         .eq('empresa_id', widget.empresaId)
         .eq('ativo', true)
+        .eq('tipo', _tipoContatoEdicao)
         .order('nome');
     return List<Map<String, dynamic>>.from(rows);
+  }
+
+  void _mudarTipoEdicao(String novoTipo) {
+    setState(() {
+      _tipo = novoTipo;
+      _clienteId = null;
+      _clientesFuture = _carregarClientes();
+      _categorias = [..._categoriasBaseEdicao];
+      _categoria = _categorias.first;
+    });
   }
 
   Future<void> _marcarPago() async {
@@ -140,6 +148,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
       );
       final transacao = resultado as Map<String, dynamic>;
       _alterou = true;
+      notificarLancamentosAtualizados();
       if (!mounted) return;
       setState(
         () => _lancamento = LancamentoDetalhado(
@@ -177,6 +186,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
         DateTime(hoje.year, hoje.month, hoje.day),
       );
       _alterou = true;
+      notificarLancamentosAtualizados();
       if (!mounted) return;
       setState(
         () => _lancamento = LancamentoDetalhado(
@@ -211,6 +221,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           .update({'nota_fiscal_status': 'emitida'})
           .eq('id', _lancamento.id);
       _alterou = true;
+      notificarLancamentosAtualizados();
       setState(
         () => _lancamento = _lancamento.copiarCom(notaFiscalStatus: 'emitida'),
       );
@@ -251,6 +262,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           : 'contas_pagar_receber';
       await supabase.from(tabela).delete().eq('id', _lancamento.id);
       _alterou = true;
+      notificarLancamentosAtualizados();
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       _mostrarErro(e);
@@ -288,8 +300,8 @@ class _LancamentoModalState extends State<_LancamentoModal> {
     _data = _lancamento.data;
     _clienteId = _lancamento.clienteId;
     _categorias = [
-      ..._categoriasPadrao,
-      if (_categoria.isNotEmpty && !_categoriasPadrao.contains(_categoria))
+      ..._categoriasBaseEdicao,
+      if (_categoria.isNotEmpty && !_categoriasBaseEdicao.contains(_categoria))
         _categoria,
     ];
     _clientesFuture = _carregarClientes();
@@ -360,6 +372,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
         },
       );
       _alterou = true;
+      notificarLancamentosAtualizados();
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       _mostrarErro(e);
@@ -503,7 +516,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
         if (_lancamento.clienteNome != null) ...[
           const SizedBox(height: 12),
           _InfoBox(
-            label: 'CLIENTE',
+            label: _entrada ? 'CLIENTE' : 'FORNECEDOR',
             valor: _lancamento.clienteNome!,
             corValor: AppColors.textPrimary,
           ),
@@ -687,7 +700,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
               ButtonSegment(value: 'saida', label: Text('Gasto')),
             ],
             selected: {_tipo},
-            onSelectionChanged: (s) => setState(() => _tipo = s.first),
+            onSelectionChanged: (s) => _mudarTipoEdicao(s.first),
           ),
         ),
         const SizedBox(height: 12),
@@ -766,7 +779,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
         ),
         const SizedBox(height: 12),
         _formSection(
-          label: 'CLIENTE',
+          label: _ehGastoEdicao ? 'FORNECEDOR' : 'CLIENTE',
           child: FutureBuilder<List<Map<String, dynamic>>>(
             future: _clientesFuture,
             builder: (context, snapshot) {
@@ -774,6 +787,9 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                 return const LinearProgressIndicator();
               }
               final clientes = snapshot.data ?? [];
+              final semVinculo = _ehGastoEdicao
+                  ? 'Sem fornecedor vinculado'
+                  : 'Sem cliente vinculado';
               return DropdownButtonFormField<String>(
                 initialValue: _clienteId,
                 decoration: const InputDecoration(
@@ -784,15 +800,12 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                 ),
                 dropdownColor: AppColors.surfaceAlt,
                 style: const TextStyle(color: AppColors.textPrimary),
-                hint: const Text(
-                  'Sem cliente vinculado',
-                  style: TextStyle(color: AppColors.textMuted),
+                hint: Text(
+                  semVinculo,
+                  style: const TextStyle(color: AppColors.textMuted),
                 ),
                 items: [
-                  const DropdownMenuItem(
-                    value: null,
-                    child: Text('Sem cliente vinculado'),
-                  ),
+                  DropdownMenuItem(value: null, child: Text(semVinculo)),
                   for (final c in clientes)
                     DropdownMenuItem(
                       value: c['id'] as String,
@@ -882,7 +895,9 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           child: FilledButton(
             onPressed: _loading ? null : _salvarEdicao,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: _ehGastoEdicao
+                  ? AppColors.negative
+                  : AppColors.accent,
               foregroundColor: AppColors.background,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(

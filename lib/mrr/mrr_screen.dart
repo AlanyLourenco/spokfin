@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 import 'ficha_assinante_screen.dart';
 import 'nova_assinatura_screen.dart';
@@ -31,6 +32,13 @@ class _MrrScreenState extends State<MrrScreen> {
   void initState() {
     super.initState();
     _carregar();
+    lancamentosAtualizados.addListener(_recarregar);
+  }
+
+  @override
+  void dispose() {
+    lancamentosAtualizados.removeListener(_recarregar);
+    super.dispose();
   }
 
   void _recarregar() {

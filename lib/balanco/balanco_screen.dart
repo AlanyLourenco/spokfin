@@ -7,6 +7,7 @@ import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 
 const _nomesMesesCompletos = [
@@ -50,6 +51,13 @@ class _BalancoScreenState extends State<BalancoScreen> {
   void initState() {
     super.initState();
     _future = _carregar();
+    lancamentosAtualizados.addListener(_recarregar);
+  }
+
+  @override
+  void dispose() {
+    lancamentosAtualizados.removeListener(_recarregar);
+    super.dispose();
   }
 
   void _recarregar() {

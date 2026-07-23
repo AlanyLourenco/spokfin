@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 import 'cliente_form_screen.dart';
 import 'ficha_cliente_screen.dart';
+import 'ficha_fornecedor_screen.dart';
 
 const _tamanhoPagina = 30;
 
@@ -21,6 +23,7 @@ class ClientesScreen extends StatefulWidget {
 }
 
 class _ClientesScreenState extends State<ClientesScreen> {
+  String _aba = 'cliente';
   List<Map<String, dynamic>>? _clientes;
   bool _temMais = false;
   bool _carregandoMais = false;
@@ -33,19 +36,33 @@ class _ClientesScreenState extends State<ClientesScreen> {
 
   final _buscaController = TextEditingController();
 
+  bool get _ehFornecedor => _aba == 'fornecedor';
+
   @override
   void initState() {
     super.initState();
     _carregarPrimeiraPagina();
     _buscaController.addListener(_onBuscaMudou);
+    lancamentosAtualizados.addListener(_recarregar);
   }
 
   @override
   void dispose() {
+    lancamentosAtualizados.removeListener(_recarregar);
     _debounce?.cancel();
     _buscaController.removeListener(_onBuscaMudou);
     _buscaController.dispose();
     super.dispose();
+  }
+
+  void _trocarAba(String aba) {
+    if (aba == _aba) return;
+    setState(() {
+      _aba = aba;
+      _buscaController.clear();
+      _resultadoBusca = null;
+    });
+    _recarregar();
   }
 
   void _onBuscaMudou() {
@@ -66,6 +83,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
           .select()
           .eq('empresa_id', widget.empresaId)
           .eq('ativo', true)
+          .eq('tipo', _aba)
           .ilike('nome', '%$termo%')
           .order('nome')
           .limit(50);
@@ -140,7 +158,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
         .from('clientes')
         .select()
         .eq('empresa_id', widget.empresaId)
-        .eq('ativo', true);
+        .eq('ativo', true)
+        .eq('tipo', _aba);
     if (cursor != null) {
       query = query.gt('nome', cursor);
     }
@@ -205,22 +224,36 @@ class _ClientesScreenState extends State<ClientesScreen> {
     ];
   }
 
-  Future<void> _novoCliente() async {
+  Future<void> _novoContato() async {
     final salvou = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => ClienteFormScreen(empresaId: widget.empresaId),
+        builder: (_) =>
+            ClienteFormScreen(empresaId: widget.empresaId, tipo: _aba),
       ),
     );
     if (salvou == true) _recarregar();
   }
 
-  Future<void> _abrirFicha(Map<String, dynamic> cliente) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            FichaClienteScreen(empresaId: widget.empresaId, cliente: cliente),
-      ),
-    );
+  Future<void> _abrirFicha(Map<String, dynamic> contato) async {
+    if (_ehFornecedor) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FichaFornecedorScreen(
+            empresaId: widget.empresaId,
+            fornecedor: contato,
+          ),
+        ),
+      );
+    } else {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => FichaClienteScreen(
+            empresaId: widget.empresaId,
+            cliente: contato,
+          ),
+        ),
+      );
+    }
     _recarregar();
   }
 
@@ -228,17 +261,17 @@ class _ClientesScreenState extends State<ClientesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Clientes e Devedores'),
+        title: Text(_ehFornecedor ? 'Fornecedores' : 'Clientes e Devedores'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: FilledButton.icon(
-              onPressed: _novoCliente,
+              onPressed: _novoContato,
               icon: const Icon(Icons.person_add_alt, size: 16),
-              label: const Text('Novo'),
+              label: Text(_ehFornecedor ? 'Novo Fornecedor' : 'Novo'),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                foregroundColor: Colors.black,
+                foregroundColor: AppColors.background,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 8,
@@ -267,10 +300,26 @@ class _ClientesScreenState extends State<ClientesScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'cliente', label: Text('Clientes')),
+                    ButtonSegment(
+                      value: 'fornecedor',
+                      label: Text('Fornecedores'),
+                    ),
+                  ],
+                  selected: {_aba},
+                  onSelectionChanged: (s) => _trocarAba(s.first),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: TextField(
                   controller: _buscaController,
                   decoration: InputDecoration(
-                    hintText: 'Buscar cliente por nome...',
+                    hintText: _ehFornecedor
+                        ? 'Buscar fornecedor por nome...'
+                        : 'Buscar cliente por nome...',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: buscando && _buscando
                         ? const Padding(
@@ -292,8 +341,10 @@ class _ClientesScreenState extends State<ClientesScreen> {
                     ? Center(
                         child: Text(
                           buscando
-                              ? 'Nenhum cliente encontrado'
-                              : 'Nenhum cliente cadastrado ainda',
+                              ? 'Nenhum resultado encontrado'
+                              : (_ehFornecedor
+                                    ? 'Nenhum fornecedor cadastrado ainda'
+                                    : 'Nenhum cliente cadastrado ainda'),
                           style: const TextStyle(color: AppColors.textMuted),
                         ),
                       )
@@ -347,25 +398,33 @@ class _ClientesScreenState extends State<ClientesScreen> {
                               ),
                               title: Text(nome),
                               subtitle: Text(
-                                ultimo == null
-                                    ? 'Sem lançamentos'
-                                    : 'Último: ${_formatarData(ultimo)}',
+                                _ehFornecedor
+                                    ? ((c['chave_pix'] as String?)
+                                                ?.isNotEmpty ==
+                                            true
+                                        ? 'PIX cadastrado'
+                                        : 'Sem chave PIX')
+                                    : (ultimo == null
+                                          ? 'Sem lançamentos'
+                                          : 'Último: ${_formatarData(ultimo)}'),
                               ),
-                              trailing: debito > 0
-                                  ? Text(
-                                      formatarMoeda(debito),
-                                      style: const TextStyle(
-                                        color: AppColors.negative,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    )
-                                  : const Text(
-                                      'OK',
-                                      style: TextStyle(
-                                        color: AppColors.accent,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                              trailing: _ehFornecedor
+                                  ? null
+                                  : (debito > 0
+                                        ? Text(
+                                            formatarMoeda(debito),
+                                            style: const TextStyle(
+                                              color: AppColors.negative,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'OK',
+                                            style: TextStyle(
+                                              color: AppColors.accent,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )),
                               onTap: () => _abrirFicha(c),
                             ),
                           );

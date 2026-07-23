@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 
 class FichaAssinanteScreen extends StatefulWidget {
@@ -79,6 +80,7 @@ class _FichaAssinanteScreenState extends State<FichaAssinanteScreen> {
         'registrar_pagamento_assinatura',
         params: {'p_assinatura_id': _assinaturaId, 'p_data': dataIso},
       );
+      notificarLancamentosAtualizados();
       if (mounted) {
         setState(() {
           _future = _carregar();

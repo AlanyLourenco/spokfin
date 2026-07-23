@@ -2,17 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
+import 'categorias.dart';
 import 'ia_service.dart';
-
-const _categoriasPadrao = [
-  'Venda',
-  'Empréstimo',
-  'Aula',
-  'Consultoria',
-  'Serviço',
-  'Outros',
-];
 
 class RevisarLancamentoScreen extends StatefulWidget {
   const RevisarLancamentoScreen({
@@ -39,10 +32,15 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
   late final TextEditingController _valorController;
   late final TextEditingController _descricaoController;
   late final TextEditingController _novaCategoriaController;
-  late final List<String> _categorias;
-  late Future<List<Map<String, dynamic>>> _clientesFuture;
+  late List<String> _categorias;
+  late Future<List<Map<String, dynamic>>> _contatosFuture;
   bool _loading = false;
   String? _error;
+
+  bool get _ehGasto => _tipo == 'saida';
+  String get _tipoContato => _ehGasto ? 'fornecedor' : 'cliente';
+  List<String> get _categoriasBase =>
+      _ehGasto ? categoriasDespesa : categoriasReceita;
 
   @override
   void initState() {
@@ -62,11 +60,11 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
     );
     _novaCategoriaController = TextEditingController();
     _categorias = [
-      ..._categoriasPadrao,
-      if (_categoria.isNotEmpty && !_categoriasPadrao.contains(_categoria))
+      ..._categoriasBase,
+      if (_categoria.isNotEmpty && !_categoriasBase.contains(_categoria))
         _categoria,
     ];
-    _clientesFuture = _carregarClientes();
+    _contatosFuture = _carregarContatos();
   }
 
   @override
@@ -88,17 +86,19 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
     return double.tryParse(texto) ?? 0;
   }
 
-  Future<List<Map<String, dynamic>>> _carregarClientes() async {
+  Future<List<Map<String, dynamic>>> _carregarContatos() async {
     final rows = await supabase
         .from('clientes')
         .select('id, nome')
         .eq('empresa_id', widget.empresaId)
+        .eq('ativo', true)
+        .eq('tipo', _tipoContato)
         .order('nome');
-    final clientes = List<Map<String, dynamic>>.from(rows);
+    final contatos = List<Map<String, dynamic>>.from(rows);
 
     final nomeAlvo = widget.lancamento.clienteNome?.toLowerCase().trim();
     if (nomeAlvo != null && nomeAlvo.isNotEmpty) {
-      for (final c in clientes) {
+      for (final c in contatos) {
         final nome = (c['nome'] as String).toLowerCase();
         if (nome.contains(nomeAlvo) || nomeAlvo.contains(nome)) {
           _clienteId = c['id'] as String;
@@ -106,7 +106,17 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
         }
       }
     }
-    return clientes;
+    return contatos;
+  }
+
+  void _mudarTipo(String novoTipo) {
+    setState(() {
+      _tipo = novoTipo;
+      _clienteId = null;
+      _contatosFuture = _carregarContatos();
+      _categorias = [..._categoriasBase];
+      _categoria = _categorias.first;
+    });
   }
 
   void _adicionarValor(double incremento) {
@@ -138,17 +148,18 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
     if (escolhida != null) setState(() => _data = escolhida);
   }
 
-  Future<void> _cadastrarCliente() async {
+  Future<void> _cadastrarContato() async {
+    final rotulo = _ehGasto ? 'fornecedor' : 'cliente';
     final nome = await showDialog<String>(
       context: context,
       builder: (context) {
         final controller = TextEditingController();
         return AlertDialog(
-          title: const Text('Novo cliente'),
+          title: Text('Novo $rotulo'),
           content: TextField(
             controller: controller,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'Nome do cliente'),
+            decoration: InputDecoration(hintText: 'Nome do $rotulo'),
           ),
           actions: [
             TextButton(
@@ -168,18 +179,22 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
     try {
       final row = await supabase
           .from('clientes')
-          .insert({'empresa_id': widget.empresaId, 'nome': nome})
+          .insert({
+            'empresa_id': widget.empresaId,
+            'nome': nome,
+            'tipo': _tipoContato,
+          })
           .select('id, nome')
           .single();
       setState(() {
         _clienteId = row['id'] as String;
-        _clientesFuture = _carregarClientes();
+        _contatosFuture = _carregarContatos();
       });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erro ao criar cliente: $e')));
+        ).showSnackBar(SnackBar(content: Text('Erro ao criar $rotulo: $e')));
       }
     }
   }
@@ -223,6 +238,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
           'cliente_id': _clienteId,
         });
       }
+      notificarLancamentosAtualizados();
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -233,9 +249,9 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final rotuloData = _status == 'pendente'
-        ? 'DATA DE VENCIMENTO'
-        : 'DATA';
+    final rotuloData = _status == 'pendente' ? 'DATA DE VENCIMENTO' : 'DATA';
+    final rotuloContato = _ehGasto ? 'FORNECEDOR' : 'CLIENTE';
+    final corBotao = _ehGasto ? AppColors.negative : AppColors.accent;
     return Scaffold(
       appBar: AppBar(title: const Text('Confirmar Lançamento')),
       body: Center(
@@ -357,8 +373,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                           ),
                         ],
                         selected: {_tipo},
-                        onSelectionChanged: (s) =>
-                            setState(() => _tipo = s.first),
+                        onSelectionChanged: (s) => _mudarTipo(s.first),
                       ),
                     ],
                   ),
@@ -417,7 +432,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                               backgroundColor: AppColors.surfaceAlt,
                               labelStyle: TextStyle(
                                 color: _categoria == c
-                                    ? Colors.black
+                                    ? AppColors.background
                                     : AppColors.textMuted,
                               ),
                               side: BorderSide.none,
@@ -450,35 +465,43 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'CLIENTE',
-                        style: TextStyle(
+                      Text(
+                        rotuloContato,
+                        style: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 11,
                         ),
                       ),
                       const SizedBox(height: 8),
                       FutureBuilder<List<Map<String, dynamic>>>(
-                        future: _clientesFuture,
+                        future: _contatosFuture,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState !=
                               ConnectionState.done) {
                             return const LinearProgressIndicator();
                           }
-                          final clientes = snapshot.data ?? [];
+                          final contatos = snapshot.data ?? [];
                           return DropdownButtonFormField<String>(
                             initialValue: _clienteId,
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                             ),
                             dropdownColor: AppColors.surfaceAlt,
-                            hint: const Text('Sem cliente vinculado'),
+                            hint: Text(
+                              _ehGasto
+                                  ? 'Sem fornecedor vinculado'
+                                  : 'Sem cliente vinculado',
+                            ),
                             items: [
-                              const DropdownMenuItem(
+                              DropdownMenuItem(
                                 value: null,
-                                child: Text('Sem cliente vinculado'),
+                                child: Text(
+                                  _ehGasto
+                                      ? 'Sem fornecedor vinculado'
+                                      : 'Sem cliente vinculado',
+                                ),
                               ),
-                              for (final c in clientes)
+                              for (final c in contatos)
                                 DropdownMenuItem(
                                   value: c['id'] as String,
                                   child: Text(c['nome'] as String),
@@ -491,9 +514,13 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
-                          onPressed: _cadastrarCliente,
+                          onPressed: _cadastrarContato,
                           icon: const Icon(Icons.add, size: 18),
-                          label: const Text('Cadastrar novo cliente'),
+                          label: Text(
+                            _ehGasto
+                                ? 'Cadastrar novo fornecedor'
+                                : 'Cadastrar novo cliente',
+                          ),
                         ),
                       ),
                     ],
@@ -558,6 +585,10 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: _loading ? null : _salvar,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: corBotao,
+                    foregroundColor: AppColors.background,
+                  ),
                   child: _loading
                       ? const SizedBox(
                           width: 18,

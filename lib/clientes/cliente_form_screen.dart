@@ -2,11 +2,27 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 
+const _tiposChavePix = {
+  'cpf_cnpj': 'CPF/CNPJ',
+  'email': 'E-mail',
+  'telefone': 'Telefone',
+  'aleatoria': 'Chave Aleatória',
+};
+
 class ClienteFormScreen extends StatefulWidget {
-  const ClienteFormScreen({super.key, required this.empresaId, this.cliente});
+  const ClienteFormScreen({
+    super.key,
+    required this.empresaId,
+    this.cliente,
+    this.tipo = 'cliente',
+  });
 
   final String empresaId;
   final Map<String, dynamic>? cliente;
+
+  /// 'cliente' ou 'fornecedor' — só usado ao criar um novo registro; ao
+  /// editar, o tipo já vem de [cliente] e não muda.
+  final String tipo;
 
   @override
   State<ClienteFormScreen> createState() => _ClienteFormScreenState();
@@ -15,10 +31,14 @@ class ClienteFormScreen extends StatefulWidget {
 class _ClienteFormScreenState extends State<ClienteFormScreen> {
   late final TextEditingController _nomeController;
   late final TextEditingController _telefoneController;
+  late final TextEditingController _chavePixController;
+  String? _tipoChavePix;
   bool _loading = false;
   String? _error;
 
   bool get _editando => widget.cliente != null;
+  String get _tipo => widget.cliente?['tipo'] as String? ?? widget.tipo;
+  bool get _ehFornecedor => _tipo == 'fornecedor';
 
   @override
   void initState() {
@@ -29,12 +49,17 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
     _telefoneController = TextEditingController(
       text: widget.cliente?['telefone'] as String? ?? '',
     );
+    _chavePixController = TextEditingController(
+      text: widget.cliente?['chave_pix'] as String? ?? '',
+    );
+    _tipoChavePix = widget.cliente?['tipo_chave_pix'] as String?;
   }
 
   @override
   void dispose() {
     _nomeController.dispose();
     _telefoneController.dispose();
+    _chavePixController.dispose();
     super.dispose();
   }
 
@@ -49,11 +74,14 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
       _error = null;
     });
     try {
+      final chavePix = _chavePixController.text.trim();
       final dados = {
         'nome': nome,
         'telefone': _telefoneController.text.trim().isEmpty
             ? null
             : _telefoneController.text.trim(),
+        if (_ehFornecedor) 'chave_pix': chavePix.isEmpty ? null : chavePix,
+        if (_ehFornecedor) 'tipo_chave_pix': chavePix.isEmpty ? null : _tipoChavePix,
       };
       if (_editando) {
         await supabase
@@ -64,6 +92,7 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
         await supabase.from('clientes').insert({
           ...dados,
           'empresa_id': widget.empresaId,
+          'tipo': widget.tipo,
         });
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -76,9 +105,10 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final rotulo = _ehFornecedor ? 'Fornecedor' : 'Cliente';
     return Scaffold(
       appBar: AppBar(
-        title: Text(_editando ? 'Editar Cliente' : 'Novo Cliente'),
+        title: Text(_editando ? 'Editar $rotulo' : 'Novo $rotulo'),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -100,6 +130,31 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
                   decoration: const InputDecoration(labelText: 'Número'),
                   keyboardType: TextInputType.phone,
                 ),
+                if (_ehFornecedor) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _chavePixController,
+                    decoration: const InputDecoration(
+                      labelText: 'Chave PIX do Fornecedor (opcional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _tipoChavePix,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo da Chave',
+                    ),
+                    hint: const Text('Selecione o tipo'),
+                    items: [
+                      for (final entrada in _tiposChavePix.entries)
+                        DropdownMenuItem(
+                          value: entrada.key,
+                          child: Text(entrada.value),
+                        ),
+                    ],
+                    onChanged: (v) => setState(() => _tipoChavePix = v),
+                  ),
+                ],
                 if (_error != null) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -119,7 +174,9 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Text(
-                          _editando ? 'Salvar Alterações' : 'Salvar Cliente',
+                          _editando
+                              ? 'Salvar Alterações'
+                              : 'Salvar $rotulo',
                         ),
                 ),
               ],
