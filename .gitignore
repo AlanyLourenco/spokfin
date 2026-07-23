@@ -52,3 +52,6 @@ $RECYCLE.BIN/
 
 # Claude Code (config pessoal, não compartilhada)
 .claude/settings.local.json
+
+# Credenciais locais (Supabase)
+.env

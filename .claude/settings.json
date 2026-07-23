@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dart format *)",
+      "Bash(sleep 12 && tail -n 30 /tmp/flutter_run.log)",
+      "Read(//tmp/**)",
+      "Bash(sleep 20 && tail -n 30 /tmp/flutter_run.log)",
+      "Bash(taskkill //F //IM chrome.exe)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5000 --max-time 5)",
+      "Bash(cat /tmp/flutter_run.log)",
+      "Bash(flutter test *)",
+      "Bash(rm -rf build/unit_test_assets ios/Flutter/ephemeral)",
+      "Bash(gh auth *)",
+      "Bash(grep -i \"\\\\.env$\")",
+      "Bash(gh repo *)",
+      "Bash(git add *)"
+    ]
+  }
+}
