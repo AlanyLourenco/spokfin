@@ -1,7 +1,10 @@
-// Transcreve um áudio gravado no app (base64) para texto usando o Whisper
-// (OpenAI) — usado pela tela "Falar".
+// Transcreve um áudio gravado no app (base64) para texto usando o Gemini
+// (gemini-2.0-flash, que entende áudio nativamente, camada gratuita do
+// Google AI Studio) — usado pela tela "Falar".
 
 import { verificarLimiteIa } from "../_shared/rate_limit.ts";
+
+const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,36 +43,55 @@ Deno.serve(async (req) => {
     );
   }
 
-  const bytes = Uint8Array.from(atob(audio_base64), (c) => c.charCodeAt(0));
   const tipo = typeof mime_type === "string" ? mime_type : "audio/webm";
-  const extensao = tipo.includes("wav") ? "wav" : "webm";
 
-  const form = new FormData();
-  form.append("file", new Blob([bytes], { type: tipo }), `audio.${extensao}`);
-  form.append("model", "whisper-1");
-  form.append("language", "pt");
-
-  const whisperResponse = await fetch(
-    "https://api.openai.com/v1/audio/transcriptions",
+  const geminiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
+        "x-goog-api-key": Deno.env.get("GEMINI_API_KEY") ?? "",
+        "Content-Type": "application/json",
       },
-      body: form,
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text:
+                  "Transcreva o áudio a seguir para texto em português do " +
+                  "Brasil. Responda só com a transcrição, sem comentários " +
+                  "adicionais.",
+              },
+              { inlineData: { mimeType: tipo, data: audio_base64 } },
+            ],
+          },
+        ],
+      }),
     },
   );
 
-  if (!whisperResponse.ok) {
-    const errorText = await whisperResponse.text();
+  if (!geminiResponse.ok) {
+    const errorText = await geminiResponse.text();
     return new Response(JSON.stringify({ error: errorText }), {
       status: 502,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const data = await whisperResponse.json();
-  return new Response(JSON.stringify({ texto: data.text }), {
+  const data = await geminiResponse.json();
+  const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!texto) {
+    return new Response(
+      JSON.stringify({ error: "IA não retornou uma transcrição válida" }),
+      {
+        status: 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  return new Response(JSON.stringify({ texto }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

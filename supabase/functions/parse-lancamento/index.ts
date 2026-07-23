@@ -1,9 +1,11 @@
 // Extrai um lançamento estruturado (tipo, valor, descrição, categoria, status,
-// nota fiscal, cliente, data) a partir de texto solto em português, usando
-// GPT-4o mini (mais barato, suficiente para uma extração simples) — usado
+// nota fiscal, cliente, data) a partir de texto solto em português, usando o
+// Gemini (gemini-2.0-flash, camada gratuita do Google AI Studio) — usado
 // pelas telas "Anotar" e "Falar" do app.
 
 import { verificarLimiteIa } from "../_shared/rate_limit.ts";
+
+const MODEL = "gemini-2.0-flash";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,16 +14,16 @@ const corsHeaders = {
 };
 
 const EXTRACTION_SCHEMA = {
-  type: "object",
+  type: "OBJECT",
   properties: {
-    tipo: { type: "string", enum: ["entrada", "saida"] },
-    valor: { type: "number" },
-    descricao: { type: "string" },
-    categoria: { type: "string" },
-    status: { type: "string", enum: ["pago", "pendente"] },
-    quer_nota_fiscal: { type: "boolean" },
-    cliente_nome: { type: ["string", "null"] },
-    data: { type: "string" },
+    tipo: { type: "STRING", enum: ["entrada", "saida"] },
+    valor: { type: "NUMBER" },
+    descricao: { type: "STRING" },
+    categoria: { type: "STRING" },
+    status: { type: "STRING", enum: ["pago", "pendente"] },
+    quer_nota_fiscal: { type: "BOOLEAN" },
+    cliente_nome: { type: "STRING", nullable: true },
+    data: { type: "STRING" },
   },
   required: [
     "tipo",
@@ -33,7 +35,6 @@ const EXTRACTION_SCHEMA = {
     "cliente_nome",
     "data",
   ],
-  additionalProperties: false,
 };
 
 function buildSystemPrompt(): string {
@@ -84,42 +85,35 @@ Deno.serve(async (req) => {
     );
   }
 
-  const openaiResponse = await fetch(
-    "https://api.openai.com/v1/chat/completions",
+  const geminiResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
+        "x-goog-api-key": Deno.env.get("GEMINI_API_KEY") ?? "",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: buildSystemPrompt() },
-          { role: "user", content: texto },
-        ],
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: "lancamento",
-            schema: EXTRACTION_SCHEMA,
-            strict: true,
-          },
+        systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
+        contents: [{ parts: [{ text: texto }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: EXTRACTION_SCHEMA,
         },
       }),
     },
   );
 
-  if (!openaiResponse.ok) {
-    const errorText = await openaiResponse.text();
+  if (!geminiResponse.ok) {
+    const errorText = await geminiResponse.text();
     return new Response(JSON.stringify({ error: errorText }), {
       status: 502,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  const data = await openaiResponse.json();
-  const content = data.choices?.[0]?.message?.content;
+  const data = await geminiResponse.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) {
     return new Response(
       JSON.stringify({ error: "IA não retornou um lançamento válido" }),
