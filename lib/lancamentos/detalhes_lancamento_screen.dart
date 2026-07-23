@@ -521,40 +521,40 @@ class _LancamentoModalState extends State<_LancamentoModal> {
   }
 
   Widget _buildViewFooter() {
-    final botaoStatus = Expanded(
-      child: OutlinedButton(
-        onPressed: _loading ? null : (_pago ? _marcarPendente : _marcarPago),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: AppColors.background,
-          foregroundColor: AppColors.textPrimary,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: _loading
-            ? const SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Text(_pago ? 'Marcar Pendente' : 'Marcar Pago'),
-      ),
-    );
-
-    if (!(_pago && _entrada)) return Row(children: [botaoStatus]);
-
     return Row(
       children: [
-        botaoStatus,
+        Expanded(
+          child: OutlinedButton(
+            onPressed: _loading
+                ? null
+                : (_pago ? _marcarPendente : _marcarPago),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: AppColors.background,
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(_pago ? 'Marcar Pendente' : 'Marcar Pago'),
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: FilledButton(
-            onPressed: _gerarRecibo,
+            onPressed: (_pago && _entrada && !_loading) ? _gerarRecibo : null,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.accent,
               foregroundColor: AppColors.background,
+              disabledBackgroundColor: AppColors.surfaceAlt,
+              disabledForegroundColor: AppColors.textMuted,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -585,6 +585,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
             ),
             decoration: const InputDecoration(
               border: InputBorder.none,
+              filled: false,
               isDense: true,
               contentPadding: EdgeInsets.zero,
             ),
@@ -608,6 +609,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                 ),
                 decoration: const InputDecoration(
                   border: InputBorder.none,
+                  filled: false,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                   prefixText: '\$ ',
@@ -703,7 +705,15 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                       controller: _novaCategoriaController,
                       style: const TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(
+                        filled: false,
+                        border: UnderlineInputBorder(
+                          borderSide: BorderSide(color: AppColors.hairline),
+                        ),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: AppColors.hairline),
+                        ),
                         hintText: 'Ou digite uma nova categoria',
+                        hintStyle: TextStyle(color: AppColors.textMuted),
                       ),
                     ),
                   ),
@@ -731,6 +741,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                 initialValue: _clienteId,
                 decoration: const InputDecoration(
                   border: InputBorder.none,
+                  filled: false,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
