@@ -1,37 +1,46 @@
 # Design — Período Personalizado no Balanço
 
+> Revisado: a primeira versão deste design (lista dos últimos 12 meses + item "Período personalizado..." pendurado no fim) foi implementada, mas o usuário quer o seletor do Balanço **idêntico** ao do Histórico. Esta versão substitui a anterior.
+
 ## Modelagem de dados
-Nenhuma mudança de schema. Só uma nova query em `transacoes` com `gte`/`lt` sobre um intervalo arbitrário em vez de sempre o 1º dia ao último dia do `_mes` selecionado — mesma tabela, mesmas colunas.
+Nenhuma mudança de schema. Só o formato da query em `transacoes` muda: com filtro `gte`/`lt` (Este Mês, Mês Passado, Período personalizado) ou sem filtro nenhum de data (Todos os meses).
 
 ## Backend
-Nenhuma mudança. Continua uma query direta com `.gte('data_transacao', ...).lt('data_transacao', ...)`, só que os limites passam a vir de `_periodoPersonalizado` (quando setado) em vez de sempre derivados de `_mes`.
+Nenhuma mudança.
 
 ## Telas / UI
 
 ### Estado (`_BalancoScreenState`)
-- Novo campo `DateTimeRange? _periodoPersonalizado` (mutuamente exclusivo com o modo "mês único" — quando não-nulo, tem prioridade).
-- `_abrirSeletorMes()` ganha mais um `ListTile` no fim da lista, "Período personalizado...", com checkmark quando `_periodoPersonalizado != null`. Ao tocar, fecha o bottom sheet e chama `_escolherPeriodoPersonalizado()` (novo método, cópia do padrão já usado em `historico_screen.dart:_escolherPeriodoPersonalizado`: `showDateRangePicker` com `firstDate`/`lastDate` de -5/+1 anos, `initialDateRange: _periodoPersonalizado`).
-- Selecionar um mês da lista (`ListTile` de mês já existente) volta a zerar `_periodoPersonalizado = null`, restaurando o modo mês único.
-- Rótulo do cabeçalho (`_rotuloPeriodo()`, novo método): se `_periodoPersonalizado != null`, retorna `'${_formatarDataCurta(inicio)} - ${_formatarDataCurta(fim)}'` — mesmo formato dd/mm (sem ano) que `historico_screen.dart` já usa, por consistência entre as duas telas. Senão, o rótulo de mês atual (`'${_nomesMesesCompletos[_mes.month-1]} de ${_mes.year}'`).
-- Título "LANÇAMENTOS DE {MÊS} DE {ANO}" e as duas mensagens de estado vazio ("Nenhum gasto registrado neste mês" / "Nenhum lançamento neste mês") passam a checar `_periodoPersonalizado`: se ativo, viram "LANÇAMENTOS DO PERÍODO" / "...neste período".
+Troca completamente o modelo anterior (`DateTime _mes` + `DateTimeRange? _periodoPersonalizado`) pelo mesmo modelo já usado em `historico_screen.dart`:
+- `String _periodo = 'todos'` (valores: `'todos'`, `'este_mes'`, `'mes_passado'`, `'personalizado'`).
+- `DateTimeRange? _intervaloPersonalizado`.
+
+### Seletor (`_abrirSeletorPeriodo`, substitui `_abrirSeletorMes`)
+Cópia exata do bottom sheet de `historico_screen.dart:_abrirSeletorPeriodo` (linhas ~242-300): 4 `ListTile`s — "Todos os meses", "Este Mês (`{mês} {ano}`)", "Mês Passado (`{mês} {ano}`)", "Período personalizado..." — cada um com checkmark quando é o `_periodo` ativo. Tocar em qualquer um dos 3 primeiros chama `setState(() => _periodo = valor)` e fecha o sheet; tocar em "Período personalizado..." fecha o sheet e abre `_escolherPeriodoPersonalizado()` (já implementado na rodada anterior, mantém-se igual — só passa a setar `_periodo = 'personalizado'` em vez de um campo próprio).
+
+### Rótulo do cabeçalho (`_rotuloPeriodo`)
+Cópia do `historico_screen.dart:_rotuloPeriodo` (linhas ~302-316): `switch (_periodo)` retornando `'{mês} {ano}'` pra este_mes/mes_passado, `'{dd/mm} - {dd/mm}'` pra personalizado, `'Todos os meses'` como default.
 
 ### `_carregar()`
-- Calcula `inicio`/`fimExclusivo` a partir de `_periodoPersonalizado` (quando setado) ou do `_mes` (comportamento atual), como hoje.
-- `duracaoDias = fimExclusivo.difference(inicio).inDays`. Define `agruparPorMes = duracaoDias > 31`.
-- Durante o loop que já existe sobre as `transacoes` (que calcula `receitas`, `despesas`, `categoriaTotais`, `lancamentos`), acumula também `entradaPorDia`/`saidaPorDia` como `Map<DateTime, double>` chaveado pela data (ano/mês/dia, sem hora) — evita colisão entre dias de meses diferentes que o `Map<int, double>` atual (chave só o dia do mês) teria se o período cruzar meses.
-- Depois do loop, monta a lista final de barras do gráfico (`List<_BarraValor>`, tipo novo — ver abaixo):
-  - Se `!agruparPorMes`: uma `_BarraValor` por dia dentro de `[inicio, fimExclusivo)`, rótulo `dd/mm`.
-  - Se `agruparPorMes`: agrega `entradaPorDia`/`saidaPorDia` por `DateTime(ano, mês)` e gera uma `_BarraValor` por mês dentro do intervalo (incluindo meses parciais nas pontas), rótulo abreviado do mês (`Fev`, `Mar`, ...), com ano junto quando o período cruza a virada do ano.
+Calcula `inicio`/`fim` (ambos `DateTime?`, nulos só no caso `'todos'`) a partir de `_periodo`:
+- `'este_mes'`: 1º dia do mês atual → 1º dia do mês seguinte.
+- `'mes_passado'`: 1º dia do mês anterior → 1º dia do mês atual.
+- `'personalizado'`: `_intervaloPersonalizado!.start`/`.end` (fim exclusivo = end + 1 dia), como já implementado.
+- `'todos'`: `inicio`/`fim` nulos — a query não aplica `.gte`/`.lt`, busca todas as `transacoes` da empresa.
 
-### `_EntradasSaidasChart` (generalizado)
-Troca `entradaPorDia`/`saidaPorDia`/`diasNoMes` por um único `List<_BarraValor> barras` (`_BarraValor { rotulo, entrada, saida }`), e itera `barras` em vez de `1..diasNoMes` — mesmo desenho (duas barrinhas coladas por item, altura proporcional ao máximo), só que agora agnóstico a "é dia ou é mês". A faixa de rótulos embaixo (hoje fixa em "01 / meio / diasNoMes") passa a mostrar `barras.first.rotulo` / `barras[barras.length ~/ 2].rotulo` / `barras.last.rotulo`.
+Query: monta o `PostgrestFilterBuilder` base (`.from('transacoes').select().eq('empresa_id', ...)`) e só encadeia `.gte()`/`.lt()` quando `inicio`/`fim` não são nulos, antes do `.order()`.
 
-`_BalancoDados` troca os campos `entradaPorDia`/`saidaPorDia`/`diasNoMes` por `List<_BarraValor> barras`.
+Granularidade do gráfico:
+- Quando `inicio`/`fim` não são nulos: mesma regra já implementada (`fim.difference(inicio).inDays > 31` → agrupa por mês).
+- Quando `'todos'` (sem `inicio`/`fim` fixos): agrupa por mês sempre, usando como intervalo de barras o mês da menor até o mês da maior `data_transacao` entre as transações carregadas (rastreado no mesmo loop que já calcula `receitas`/`despesas`/`categoriaTotais`). Se não houver nenhuma transação, `barras` fica vazio (o `_EntradasSaidasChart` já lida com lista vazia).
+
+### Título "LANÇAMENTOS..." e mensagens de vazio
+Viram uma função `_tituloLancamentos()`: `'LANÇAMENTOS DE {mês} DE {ano}'` pra este_mes/mes_passado (com o mês resolvido, não mais `_mes`), `'LANÇAMENTOS DO PERÍODO'` pra personalizado, `'TODOS OS LANÇAMENTOS'` pra todos. Mensagens de vazio seguem o mesmo padrão (`'...neste mês'` / `'...neste período'` / `'...ainda'`).
 
 ## Decisões técnicas e alternativas consideradas
-- **Generalizar `_EntradasSaidasChart` para uma lista de barras genérica** em vez de manter dois widgets separados (um por dia, um por mês): evita duplicar o desenho do gráfico (que já é responsivo via `Expanded`) só pra trocar a unidade do eixo X. A lógica de "por dia ou por mês" fica isolada em `_carregar()`, o widget de UI não precisa saber a diferença.
-- **Chave de agregação por `DateTime` (ano/mês/dia ou ano/mês) em vez de `int` (dia do mês)**: o `Map<int, double>` atual (chave = dia 1-31) já seria ambíguo num período que cruza meses — dia 5 de fevereiro e dia 5 de março cairiam na mesma chave. Trocar pra `DateTime` como chave resolve isso e é necessário de qualquer forma pra dar suporte a período arbitrário.
-- **Limite de 31 dias pra decidir "agrupar por mês"**: alinhado com a decisão já confirmada — período de até ~1 mês continua por dia, maior que isso agrupa por mês. `> 31` cobre até o mês mais longo (31 dias) sem forçar agrupamento num mês cheio.
+- **Copiar o modelo de estado do Histórico em vez de adaptar o que já existia no Balanço**: são exatamente as mesmas 4 opções com o mesmo texto — manter dois modelos de estado parecidos, porém distintos (`_mes`/`_periodoPersonalizado` vs `_periodo`/`_intervaloPersonalizado`) pras duas telas seria inconsistência sem motivo. Copiar o padrão já validado no Histórico é mais simples e mantém as duas telas previsíveis.
+- **"Todos os meses" sem filtro de data na query**: mais simples que buscar um intervalo artificialmente grande (ex: "últimos 10 anos"); para uma MEI o volume total de `transacoes` é pequeno o bastante pra isso não ser um problema de performance.
+- **Intervalo de barras pra "Todos os meses" derivado dos dados carregados** (não de `DateTime.now()` ou de uma data fixa): evita gerar dezenas de barras vazias caso a empresa só tenha lançamentos recentes, e não trava se não houver nenhum lançamento ainda.
 
 ## Riscos / dependências
-Nenhum novo — mesma tabela `transacoes`, mesma RLS, mesmo padrão de `showDateRangePicker` já validado em Histórico.
+Nenhum novo.

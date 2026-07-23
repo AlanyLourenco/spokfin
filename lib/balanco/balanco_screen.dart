@@ -44,8 +44,8 @@ class BalancoScreen extends StatefulWidget {
 }
 
 class _BalancoScreenState extends State<BalancoScreen> {
-  DateTime _mes = DateTime(DateTime.now().year, DateTime.now().month);
-  DateTimeRange? _periodoPersonalizado;
+  String _periodo = 'todos';
+  DateTimeRange? _intervaloPersonalizado;
   late Future<_BalancoDados> _future;
 
   @override
@@ -65,9 +65,18 @@ class _BalancoScreenState extends State<BalancoScreen> {
     setState(() => _future = _carregar());
   }
 
-  Future<void> _abrirSeletorMes() async {
+  Future<void> _abrirSeletorPeriodo() async {
     final agora = DateTime.now();
-    final opcoes = List.generate(12, (i) => DateTime(agora.year, agora.month - i));
+    final mesPassado = DateTime(agora.year, agora.month - 1);
+
+    void selecionar(String periodo) {
+      setState(() {
+        _periodo = periodo;
+        _future = _carregar();
+      });
+      Navigator.of(context).pop();
+    }
+
     await showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -75,41 +84,45 @@ class _BalancoScreenState extends State<BalancoScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) => SafeArea(
-        child: SizedBox(
-          height: 400,
-          child: ListView(
-            children: [
-              for (final m in opcoes)
-                ListTile(
-                  title: Text('${_nomesMesesCompletos[m.month - 1]} de ${m.year}'),
-                  trailing:
-                      _periodoPersonalizado == null &&
-                          m.year == _mes.year &&
-                          m.month == _mes.month
-                      ? const Icon(Icons.check, color: AppColors.accent)
-                      : null,
-                  onTap: () {
-                    setState(() {
-                      _mes = DateTime(m.year, m.month);
-                      _periodoPersonalizado = null;
-                      _future = _carregar();
-                    });
-                    Navigator.of(context).pop();
-                  },
-                ),
-              const Divider(color: AppColors.hairline, height: 1),
-              ListTile(
-                title: const Text('Período personalizado...'),
-                trailing: _periodoPersonalizado != null
-                    ? const Icon(Icons.check, color: AppColors.accent)
-                    : null,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _escolherPeriodoPersonalizado();
-                },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Todos os meses'),
+              trailing: _periodo == 'todos'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => selecionar('todos'),
+            ),
+            ListTile(
+              title: Text(
+                'Este Mês (${_nomesMesesCompletos[agora.month - 1]} ${agora.year})',
               ),
-            ],
-          ),
+              trailing: _periodo == 'este_mes'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => selecionar('este_mes'),
+            ),
+            ListTile(
+              title: Text(
+                'Mês Passado (${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year})',
+              ),
+              trailing: _periodo == 'mes_passado'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => selecionar('mes_passado'),
+            ),
+            ListTile(
+              title: const Text('Período personalizado...'),
+              trailing: _periodo == 'personalizado'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () {
+                Navigator.of(context).pop();
+                _escolherPeriodoPersonalizado();
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -121,24 +134,71 @@ class _BalancoScreenState extends State<BalancoScreen> {
       context: context,
       firstDate: DateTime(agora.year - 5),
       lastDate: DateTime(agora.year + 1),
-      initialDateRange: _periodoPersonalizado,
+      initialDateRange: _intervaloPersonalizado,
       cancelText: 'Cancelar',
       confirmText: 'Usar',
     );
     if (intervalo != null) {
       setState(() {
-        _periodoPersonalizado = intervalo;
+        _intervaloPersonalizado = intervalo;
+        _periodo = 'personalizado';
         _future = _carregar();
       });
     }
   }
 
   String _rotuloPeriodo() {
-    final periodo = _periodoPersonalizado;
-    if (periodo != null) {
-      return '${_formatarDataCurta(periodo.start)} - ${_formatarDataCurta(periodo.end)}';
+    final agora = DateTime.now();
+    switch (_periodo) {
+      case 'este_mes':
+        return '${_nomesMesesCompletos[agora.month - 1]} ${agora.year}';
+      case 'mes_passado':
+        final mesPassado = DateTime(agora.year, agora.month - 1);
+        return '${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year}';
+      case 'personalizado':
+        final intervalo = _intervaloPersonalizado;
+        if (intervalo == null) return 'Personalizado';
+        return '${_formatarDataCurta(intervalo.start)} - ${_formatarDataCurta(intervalo.end)}';
+      default:
+        return 'Todos os meses';
     }
-    return '${_nomesMesesCompletos[_mes.month - 1]} de ${_mes.year}';
+  }
+
+  String _tituloLancamentos() {
+    final agora = DateTime.now();
+    switch (_periodo) {
+      case 'este_mes':
+        return 'LANÇAMENTOS DE ${_nomesMesesCompletos[agora.month - 1]} DE ${agora.year}';
+      case 'mes_passado':
+        final mesPassado = DateTime(agora.year, agora.month - 1);
+        return 'LANÇAMENTOS DE ${_nomesMesesCompletos[mesPassado.month - 1]} DE ${mesPassado.year}';
+      case 'personalizado':
+        return 'LANÇAMENTOS DO PERÍODO';
+      default:
+        return 'TODOS OS LANÇAMENTOS';
+    }
+  }
+
+  String _mensagemSemLancamentos() {
+    switch (_periodo) {
+      case 'personalizado':
+        return 'Nenhum lançamento neste período';
+      case 'todos':
+        return 'Nenhum lançamento ainda';
+      default:
+        return 'Nenhum lançamento neste mês';
+    }
+  }
+
+  String _mensagemSemGastos() {
+    switch (_periodo) {
+      case 'personalizado':
+        return 'Nenhum gasto registrado neste período';
+      case 'todos':
+        return 'Nenhum gasto registrado ainda';
+      default:
+        return 'Nenhum gasto registrado neste mês';
+    }
   }
 
   String _formatarDataCurta(DateTime d) {
@@ -167,25 +227,42 @@ class _BalancoScreenState extends State<BalancoScreen> {
   }
 
   Future<_BalancoDados> _carregar() async {
-    final DateTime inicio;
-    final DateTime fim;
-    final periodo = _periodoPersonalizado;
-    if (periodo != null) {
-      inicio = DateTime(periodo.start.year, periodo.start.month, periodo.start.day);
-      fim = DateTime(periodo.end.year, periodo.end.month, periodo.end.day + 1);
-    } else {
-      inicio = DateTime(_mes.year, _mes.month, 1);
-      fim = DateTime(_mes.year, _mes.month + 1, 1);
+    DateTime? inicio;
+    DateTime? fim;
+    switch (_periodo) {
+      case 'este_mes':
+        final agora = DateTime.now();
+        inicio = DateTime(agora.year, agora.month, 1);
+        fim = DateTime(agora.year, agora.month + 1, 1);
+        break;
+      case 'mes_passado':
+        final mesPassado = DateTime(DateTime.now().year, DateTime.now().month - 1);
+        inicio = DateTime(mesPassado.year, mesPassado.month, 1);
+        fim = DateTime(mesPassado.year, mesPassado.month + 1, 1);
+        break;
+      case 'personalizado':
+        final intervalo = _intervaloPersonalizado;
+        if (intervalo != null) {
+          inicio = DateTime(intervalo.start.year, intervalo.start.month, intervalo.start.day);
+          fim = DateTime(intervalo.end.year, intervalo.end.month, intervalo.end.day + 1);
+        }
+        break;
+      default:
+        inicio = null;
+        fim = null;
     }
-    final agruparPorMes = fim.difference(inicio).inDays > 31;
 
-    final transacoes = await supabase
+    var query = supabase
         .from('transacoes')
         .select()
-        .eq('empresa_id', widget.empresaId)
-        .gte('data_transacao', inicio.toIso8601String().split('T').first)
-        .lt('data_transacao', fim.toIso8601String().split('T').first)
-        .order('data_transacao', ascending: false);
+        .eq('empresa_id', widget.empresaId);
+    if (inicio != null) {
+      query = query.gte('data_transacao', inicio.toIso8601String().split('T').first);
+    }
+    if (fim != null) {
+      query = query.lt('data_transacao', fim.toIso8601String().split('T').first);
+    }
+    final transacoes = await query.order('data_transacao', ascending: false);
 
     final clienteIds = <String>{
       for (final t in transacoes)
@@ -209,6 +286,8 @@ class _BalancoScreenState extends State<BalancoScreen> {
     final saidaPorDia = <DateTime, double>{};
     final categoriaTotais = <String, double>{};
     final lancamentos = <_LancamentoMes>[];
+    DateTime? menorData;
+    DateTime? maiorData;
 
     for (final t in transacoes) {
       final valor = (t['valor'] as num).toDouble();
@@ -219,6 +298,9 @@ class _BalancoScreenState extends State<BalancoScreen> {
       final categoria = (categoriaBruta == null || categoriaBruta.isEmpty)
           ? 'Outros'
           : categoriaBruta;
+
+      if (menorData == null || diaChave.isBefore(menorData)) menorData = diaChave;
+      if (maiorData == null || diaChave.isAfter(maiorData)) maiorData = diaChave;
 
       if (tipo == 'entrada') {
         receitas += valor;
@@ -251,45 +333,57 @@ class _BalancoScreenState extends State<BalancoScreen> {
             .toList()
           ..sort((a, b) => b.valor.compareTo(a.valor));
 
-    final List<_BarraValor> barras;
-    if (!agruparPorMes) {
-      barras = [
-        for (var d = inicio; d.isBefore(fim); d = d.add(const Duration(days: 1)))
-          _BarraValor(
-            rotulo:
-                '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
-            entrada: entradaPorDia[d] ?? 0,
-            saida: saidaPorDia[d] ?? 0,
-          ),
-      ];
-    } else {
-      final entradaPorMes = <DateTime, double>{};
-      final saidaPorMes = <DateTime, double>{};
-      entradaPorDia.forEach((d, v) {
-        final chave = DateTime(d.year, d.month);
-        entradaPorMes[chave] = (entradaPorMes[chave] ?? 0) + v;
-      });
-      saidaPorDia.forEach((d, v) {
-        final chave = DateTime(d.year, d.month);
-        saidaPorMes[chave] = (saidaPorMes[chave] ?? 0) + v;
-      });
-      final ultimoDiaIncluso = fim.subtract(const Duration(days: 1));
-      final ultimoMes = DateTime(ultimoDiaIncluso.year, ultimoDiaIncluso.month);
-      final cruzaAno = inicio.year != ultimoMes.year;
-      barras = [
-        for (
-          var m = DateTime(inicio.year, inicio.month);
-          !m.isAfter(ultimoMes);
-          m = DateTime(m.year, m.month + 1)
-        )
-          _BarraValor(
-            rotulo: cruzaAno
-                ? '${_nomesMesesCompletos[m.month - 1].substring(0, 3)}/${m.year.toString().substring(2)}'
-                : _nomesMesesCompletos[m.month - 1].substring(0, 3),
-            entrada: entradaPorMes[m] ?? 0,
-            saida: saidaPorMes[m] ?? 0,
-          ),
-      ];
+    List<_BarraValor> barras = [];
+    // Intervalo efetivo pro gráfico: o período escolhido, ou (se "todos") o
+    // intervalo real dos dados carregados.
+    final inicioBarras = inicio ?? menorData;
+    final fimBarras = fim ?? (maiorData?.add(const Duration(days: 1)));
+    if (inicioBarras != null && fimBarras != null) {
+      final agruparPorMes =
+          _periodo == 'todos' || fimBarras.difference(inicioBarras).inDays > 31;
+      if (!agruparPorMes) {
+        barras = [
+          for (
+            var d = inicioBarras;
+            d.isBefore(fimBarras);
+            d = d.add(const Duration(days: 1))
+          )
+            _BarraValor(
+              rotulo:
+                  '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+              entrada: entradaPorDia[d] ?? 0,
+              saida: saidaPorDia[d] ?? 0,
+            ),
+        ];
+      } else {
+        final entradaPorMes = <DateTime, double>{};
+        final saidaPorMes = <DateTime, double>{};
+        entradaPorDia.forEach((d, v) {
+          final chave = DateTime(d.year, d.month);
+          entradaPorMes[chave] = (entradaPorMes[chave] ?? 0) + v;
+        });
+        saidaPorDia.forEach((d, v) {
+          final chave = DateTime(d.year, d.month);
+          saidaPorMes[chave] = (saidaPorMes[chave] ?? 0) + v;
+        });
+        final ultimoDiaIncluso = fimBarras.subtract(const Duration(days: 1));
+        final ultimoMes = DateTime(ultimoDiaIncluso.year, ultimoDiaIncluso.month);
+        final cruzaAno = inicioBarras.year != ultimoMes.year;
+        barras = [
+          for (
+            var m = DateTime(inicioBarras.year, inicioBarras.month);
+            !m.isAfter(ultimoMes);
+            m = DateTime(m.year, m.month + 1)
+          )
+            _BarraValor(
+              rotulo: cruzaAno
+                  ? '${_nomesMesesCompletos[m.month - 1].substring(0, 3)}/${m.year.toString().substring(2)}'
+                  : _nomesMesesCompletos[m.month - 1].substring(0, 3),
+              entrada: entradaPorMes[m] ?? 0,
+              saida: saidaPorMes[m] ?? 0,
+            ),
+        ];
+      }
     }
 
     return _BalancoDados(
@@ -342,7 +436,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                   children: [
                     Center(
                       child: InkWell(
-                        onTap: _abrirSeletorMes,
+                        onTap: _abrirSeletorPeriodo,
                         borderRadius: BorderRadius.circular(999),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -517,9 +611,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Center(
                                 child: Text(
-                                  _periodoPersonalizado != null
-                                      ? 'Nenhum gasto registrado neste período'
-                                      : 'Nenhum gasto registrado neste mês',
+                                  _mensagemSemGastos(),
                                   style: const TextStyle(
                                     color: AppColors.textMuted,
                                   ),
@@ -666,10 +758,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      (_periodoPersonalizado != null
-                              ? 'LANÇAMENTOS DO PERÍODO'
-                              : 'LANÇAMENTOS DE ${_nomesMesesCompletos[_mes.month - 1]} DE ${_mes.year}')
-                          .toUpperCase(),
+                      _tituloLancamentos(),
                       style: const TextStyle(
                         color: AppColors.textMuted,
                         fontSize: 11,
@@ -683,9 +772,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(
                           child: Text(
-                            _periodoPersonalizado != null
-                                ? 'Nenhum lançamento neste período'
-                                : 'Nenhum lançamento neste mês',
+                            _mensagemSemLancamentos(),
                             style: const TextStyle(color: AppColors.textMuted),
                           ),
                         ),
