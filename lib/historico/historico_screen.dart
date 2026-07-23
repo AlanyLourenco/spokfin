@@ -409,8 +409,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     );
     await Printing.sharePdf(
       bytes: await doc.save(),
-      filename: 'relatorio_lancamentos.pdf',
+      filename: _nomeArquivoRelatorio(),
     );
+  }
+
+  String _nomeArquivoRelatorio() {
+    final rotulo = _rotuloPeriodo()
+        .replaceAll('/', '-')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return 'Relatorio Spokfin - $rotulo.pdf';
   }
 
   String _formatarDataExtenso(DateTime d) {
