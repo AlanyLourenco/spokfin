@@ -89,7 +89,7 @@ class _QuickActionsSpeedDialState extends State<QuickActionsSpeedDial> {
         FloatingActionButton(
           heroTag: 'quick_actions_toggle',
           backgroundColor: AppColors.accent,
-          foregroundColor: Colors.black,
+          foregroundColor: AppColors.background,
           onPressed: () => setState(() => _aberto = !_aberto),
           child: Icon(_aberto ? Icons.close : Icons.add),
         ),
@@ -135,7 +135,9 @@ class _ItemAcao extends StatelessWidget {
         FloatingActionButton.small(
           heroTag: 'quick_action_$label',
           backgroundColor: destaque ? AppColors.accent : AppColors.surfaceAlt,
-          foregroundColor: destaque ? Colors.black : AppColors.textPrimary,
+          foregroundColor: destaque
+              ? AppColors.background
+              : AppColors.textPrimary,
           onPressed: onTap,
           child: Icon(icon, size: 18),
         ),

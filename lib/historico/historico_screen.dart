@@ -11,6 +11,21 @@ import '../theme.dart';
 
 const _tamanhoPagina = 30;
 
+const _nomesMesesCompletos = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+
 class _Item {
   _Item({
     required this.id,
@@ -221,6 +236,82 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     }
   }
 
+  Future<void> _abrirSeletorPeriodo() async {
+    final agora = DateTime.now();
+    final mesPassado = DateTime(agora.year, agora.month - 1);
+
+    void selecionar(String periodo) {
+      setState(() => _periodo = periodo);
+      Navigator.of(context).pop();
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Todos os meses'),
+              trailing: _periodo == 'todos'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => selecionar('todos'),
+            ),
+            ListTile(
+              title: Text(
+                'Este Mês (${_nomesMesesCompletos[agora.month - 1]} ${agora.year})',
+              ),
+              trailing: _periodo == 'este_mes'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => selecionar('este_mes'),
+            ),
+            ListTile(
+              title: Text(
+                'Mês Passado (${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year})',
+              ),
+              trailing: _periodo == 'mes_passado'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () => selecionar('mes_passado'),
+            ),
+            ListTile(
+              title: const Text('Período personalizado...'),
+              trailing: _periodo == 'personalizado'
+                  ? const Icon(Icons.check, color: AppColors.accent)
+                  : null,
+              onTap: () {
+                Navigator.of(context).pop();
+                _escolherPeriodoPersonalizado();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _rotuloPeriodo() {
+    final agora = DateTime.now();
+    switch (_periodo) {
+      case 'este_mes':
+        return '${_nomesMesesCompletos[agora.month - 1]} ${agora.year}';
+      case 'mes_passado':
+        final mesPassado = DateTime(agora.year, agora.month - 1);
+        return '${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year}';
+      case 'personalizado':
+        if (_intervaloPersonalizado == null) return 'Personalizado';
+        return '${_formatarDataCurta(_intervaloPersonalizado!.start)} - ${_formatarDataCurta(_intervaloPersonalizado!.end)}';
+      default:
+        return 'Todos os meses';
+    }
+  }
+
   bool _dentroDoPeriodo(DateTime data) {
     final agora = DateTime.now();
     final dia = DateTime(data.year, data.month, data.day);
@@ -243,6 +334,24 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
 
   String _formatarDataCurta(DateTime d) {
     return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  }
+
+  List<Object> _agruparPorMes(List<_Item> itens) {
+    final resultado = <Object>[];
+    int? anoAtual;
+    int? mesAtual;
+    for (final item in itens) {
+      if (item.data.year != anoAtual || item.data.month != mesAtual) {
+        anoAtual = item.data.year;
+        mesAtual = item.data.month;
+        resultado.add(
+          '${_nomesMesesCompletos[item.data.month - 1]} DE ${item.data.year}'
+              .toUpperCase(),
+        );
+      }
+      resultado.add(item);
+    }
+    return resultado;
   }
 
   Future<void> _exportarRelatorio(List<_Item> itens) async {
@@ -359,6 +468,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 busca.isEmpty || i.descricao.toLowerCase().contains(busca);
             return passaFiltro && passaBusca && _dentroDoPeriodo(i.data);
           }).toList();
+          final agrupado = _agruparPorMes(itens);
 
           return Column(
             children: [
@@ -397,56 +507,65 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _FiltroChip(
-                        label: 'Todos',
-                        selecionado: _periodo == 'todos',
-                        onTap: () => setState(() => _periodo = 'todos'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: _abrirSeletorPeriodo,
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.hairline),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  _rotuloPeriodo(),
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: AppColors.textMuted,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 8),
-                      _FiltroChip(
-                        label: 'Este Mês',
-                        selecionado: _periodo == 'este_mes',
-                        onTap: () => setState(() => _periodo = 'este_mes'),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton.icon(
+                      onPressed: itens.isEmpty
+                          ? null
+                          : () => _exportarRelatorio(itens),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.accent,
                       ),
-                      const SizedBox(width: 8),
-                      _FiltroChip(
-                        label: 'Mês Passado',
-                        selecionado: _periodo == 'mes_passado',
-                        onTap: () => setState(() => _periodo = 'mes_passado'),
-                      ),
-                      const SizedBox(width: 8),
-                      _FiltroChip(
-                        label: _intervaloPersonalizado == null
-                            ? 'Personalizado'
-                            : '${_formatarDataCurta(_intervaloPersonalizado!.start)} - ${_formatarDataCurta(_intervaloPersonalizado!.end)}',
-                        selecionado: _periodo == 'personalizado',
-                        onTap: _escolherPeriodoPersonalizado,
-                      ),
-                    ],
-                  ),
+                      icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                      label: const Text('Exportar período'),
+                    ),
+                  ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: itens.isEmpty
-                        ? null
-                        : () => _exportarRelatorio(itens),
-                    icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
-                    label: const Text('Exportar período'),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Expanded(
                 child: itens.isEmpty
                     ? const Center(
@@ -456,10 +575,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        itemCount: itens.length + (_temMais ? 1 : 0),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        itemCount: agrupado.length + (_temMais ? 1 : 0),
                         itemBuilder: (context, i) {
-                          if (i == itens.length) {
+                          if (i == agrupado.length) {
                             return Padding(
                               padding: const EdgeInsets.symmetric(
                                 vertical: 12,
@@ -480,9 +599,28 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                               ),
                             );
                           }
+                          final entrada = agrupado[i];
+                          if (entrada is String) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                top: i == 0 ? 0 : 20,
+                                bottom: 8,
+                              ),
+                              child: Text(
+                                entrada,
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            );
+                          }
+                          final item = entrada as _Item;
                           return _ItemTile(
-                            item: itens[i],
-                            onTap: () => _abrirDetalhes(itens[i]),
+                            item: item,
+                            onTap: () => _abrirDetalhes(item),
                           );
                         },
                       ),
@@ -522,9 +660,12 @@ class _FiltroChip extends StatelessWidget {
       selectedColor: AppColors.accent,
       backgroundColor: AppColors.surfaceAlt,
       labelStyle: TextStyle(
-        color: selecionado ? Colors.black : AppColors.textMuted,
+        color: selecionado ? AppColors.background : AppColors.textMuted,
+        fontWeight: FontWeight.w600,
       ),
-      side: BorderSide.none,
+      side: selecionado
+          ? BorderSide.none
+          : const BorderSide(color: AppColors.hairline),
     );
   }
 }
@@ -540,10 +681,18 @@ class _ItemTile extends StatelessWidget {
     final positivo = item.tipo == 'entrada';
     final cor = positivo ? AppColors.accent : AppColors.negative;
     final sinal = positivo ? '+' : '-';
+    final subtitulo = [
+      '${item.data.day.toString().padLeft(2, '0')}/${item.data.month.toString().padLeft(2, '0')}/${item.data.year}',
+      if (item.categoria.isNotEmpty) item.categoria,
+    ].join(' · ');
+
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.hairline)),
+        ),
         child: Row(
           children: [
             Icon(
@@ -560,22 +709,55 @@ class _ItemTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.descricao),
                   Text(
-                    [
-                      if (item.categoria.isNotEmpty) item.categoria,
-                      item.statusLabel,
-                    ].join(' · '),
+                    item.descricao,
                     style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
                     ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          subtitulo,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      if (item.notaFiscalStatus == 'pendente') ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            border: Border.all(color: AppColors.accent),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'NFC-e agendada',
+                            style: TextStyle(
+                              color: AppColors.accent,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
             Text(
-              '$sinal ${formatarMoeda(item.valor)}',
+              '$sinal ${formatarValorCifrao(item.valor)}',
               style: TextStyle(color: cor, fontWeight: FontWeight.bold),
             ),
           ],
