@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../main.dart';
@@ -5,6 +7,8 @@ import '../shared/app_card.dart';
 import '../theme.dart';
 import 'cliente_form_screen.dart';
 import 'ficha_cliente_screen.dart';
+
+const _tamanhoPagina = 30;
 
 class ClientesScreen extends StatefulWidget {
   const ClientesScreen({super.key, required this.empresaId});
@@ -16,46 +20,155 @@ class ClientesScreen extends StatefulWidget {
 }
 
 class _ClientesScreenState extends State<ClientesScreen> {
-  late Future<List<Map<String, dynamic>>> _future;
+  List<Map<String, dynamic>>? _clientes;
+  bool _temMais = false;
+  bool _carregandoMais = false;
+  String? _ultimoNome;
+  String? _erro;
+
+  List<Map<String, dynamic>>? _resultadoBusca;
+  bool _buscando = false;
+  Timer? _debounce;
+
   final _buscaController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _future = _carregar();
+    _carregarPrimeiraPagina();
+    _buscaController.addListener(_onBuscaMudou);
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _buscaController.removeListener(_onBuscaMudou);
     _buscaController.dispose();
     super.dispose();
   }
 
-  void _recarregar() {
-    setState(() {
-      _future = _carregar();
-    });
+  void _onBuscaMudou() {
+    _debounce?.cancel();
+    final termo = _buscaController.text.trim();
+    if (termo.isEmpty) {
+      setState(() => _resultadoBusca = null);
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 300), () => _buscar(termo));
   }
 
-  Future<List<Map<String, dynamic>>> _carregar() async {
-    final clientes = await supabase
+  Future<void> _buscar(String termo) async {
+    setState(() => _buscando = true);
+    try {
+      final rows = await supabase
+          .from('clientes')
+          .select()
+          .eq('empresa_id', widget.empresaId)
+          .eq('ativo', true)
+          .ilike('nome', '%$termo%')
+          .order('nome')
+          .limit(50);
+      final comAgregados = await _comAgregados(
+        List<Map<String, dynamic>>.from(rows),
+      );
+      if (!mounted) return;
+      setState(() => _resultadoBusca = comAgregados);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro na busca: $e')));
+    } finally {
+      if (mounted) setState(() => _buscando = false);
+    }
+  }
+
+  void _recarregar() {
+    _ultimoNome = null;
+    _carregarPrimeiraPagina();
+    if (_buscaController.text.trim().isNotEmpty) {
+      _buscar(_buscaController.text.trim());
+    }
+  }
+
+  Future<void> _carregarPrimeiraPagina() async {
+    setState(() {
+      _clientes = null;
+      _erro = null;
+    });
+    try {
+      final pagina = await _buscarPagina(cursor: null);
+      if (!mounted) return;
+      setState(() {
+        _clientes = pagina.itens;
+        _temMais = pagina.temMais;
+        _ultimoNome = pagina.itens.isEmpty
+            ? null
+            : pagina.itens.last['nome'] as String;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _erro = e.toString());
+    }
+  }
+
+  Future<void> _carregarMais() async {
+    setState(() => _carregandoMais = true);
+    try {
+      final pagina = await _buscarPagina(cursor: _ultimoNome);
+      if (!mounted) return;
+      setState(() {
+        _clientes = [...?_clientes, ...pagina.itens];
+        _temMais = pagina.temMais;
+        if (pagina.itens.isNotEmpty) {
+          _ultimoNome = pagina.itens.last['nome'] as String;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao carregar mais: $e')));
+    } finally {
+      if (mounted) setState(() => _carregandoMais = false);
+    }
+  }
+
+  Future<_PaginaClientes> _buscarPagina({required String? cursor}) async {
+    var query = supabase
         .from('clientes')
         .select()
         .eq('empresa_id', widget.empresaId)
-        .eq('ativo', true)
-        .order('nome');
+        .eq('ativo', true);
+    if (cursor != null) {
+      query = query.gt('nome', cursor);
+    }
+    final rows = await query.order('nome').limit(_tamanhoPagina);
+    final clientes = List<Map<String, dynamic>>.from(rows);
+    final comAgregados = await _comAgregados(clientes);
+    return _PaginaClientes(
+      itens: comAgregados,
+      temMais: clientes.length >= _tamanhoPagina,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _comAgregados(
+    List<Map<String, dynamic>> clientes,
+  ) async {
+    if (clientes.isEmpty) return [];
+    final clienteIds = clientes.map((c) => c['id'] as String).toList();
 
     final transacoes = await supabase
         .from('transacoes')
         .select('cliente_id, data_transacao')
         .eq('empresa_id', widget.empresaId)
-        .not('cliente_id', 'is', null);
+        .inFilter('cliente_id', clienteIds);
 
     final contas = await supabase
         .from('contas_pagar_receber')
         .select('cliente_id, vencimento, valor, tipo, status')
         .eq('empresa_id', widget.empresaId)
-        .not('cliente_id', 'is', null);
+        .inFilter('cliente_id', clienteIds);
 
     final ultimoPorCliente = <String, DateTime>{};
     void registrarData(String? clienteId, String dataIso) {
@@ -138,60 +251,74 @@ class _ClientesScreenState extends State<ClientesScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+      body: Builder(
+        builder: (context) {
+          if (_erro != null) {
+            return Center(child: Text('Erro: $_erro'));
+          }
+          if (_clientes == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          }
-          final todos = snapshot.data!;
-          if (todos.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhum cliente cadastrado ainda',
-                style: TextStyle(color: AppColors.textMuted),
-              ),
-            );
-          }
-          final busca = _buscaController.text.trim().toLowerCase();
-          final clientes = busca.isEmpty
-              ? todos
-              : todos
-                    .where(
-                      (c) => (c['nome'] as String? ?? '')
-                          .toLowerCase()
-                          .contains(busca),
-                    )
-                    .toList();
+          final buscando = _buscaController.text.trim().isNotEmpty;
+          final clientes = buscando ? _resultadoBusca : _clientes;
+
           return Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: TextField(
                   controller: _buscaController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Buscar cliente por nome...',
-                    prefixIcon: Icon(Icons.search),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: buscando && _buscando
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               ),
               Expanded(
-                child: clientes.isEmpty
-                    ? const Center(
+                child: clientes == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : clientes.isEmpty
+                    ? Center(
                         child: Text(
-                          'Nenhum cliente encontrado',
-                          style: TextStyle(color: AppColors.textMuted),
+                          buscando
+                              ? 'Nenhum cliente encontrado'
+                              : 'Nenhum cliente cadastrado ainda',
+                          style: const TextStyle(color: AppColors.textMuted),
                         ),
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                        itemCount: clientes.length,
+                        itemCount:
+                            clientes.length +
+                            (!buscando && _temMais ? 1 : 0),
                         separatorBuilder: (_, _) => const SizedBox(height: 10),
                         itemBuilder: (context, i) {
+                          if (i == clientes.length) {
+                            return Center(
+                              child: _carregandoMais
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : TextButton(
+                                      onPressed: _carregarMais,
+                                      child: const Text('Carregar mais'),
+                                    ),
+                            );
+                          }
                           final c = clientes[i];
                           final nome = c['nome'] as String? ?? '';
                           final ultimo = c['ultimo'] as DateTime?;
@@ -250,6 +377,13 @@ class _ClientesScreenState extends State<ClientesScreen> {
       ),
     );
   }
+}
+
+class _PaginaClientes {
+  _PaginaClientes({required this.itens, required this.temMais});
+
+  final List<Map<String, dynamic>> itens;
+  final bool temMais;
 }
 
 String _formatarData(DateTime d) {

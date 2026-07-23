@@ -147,7 +147,8 @@ Como MEI, quero compartilhar o recibo em PDF direto pelo compartilhamento nativo
 
 ### 7.1 Listar e filtrar por tipo/texto ✅
 Como MEI, quero ver todos os lançamentos (pagos e pendentes) num só lugar, filtrando por tipo ou buscando por descrição, para achar um lançamento específico.
-- Filtros Tudo/Entradas/Saídas + busca por texto na descrição (client-side).
+- Filtros Tudo/Entradas/Saídas + busca por texto na descrição (client-side, sobre os itens já carregados).
+- **Paginação**: carrega os 30 lançamentos mais recentes de cada fonte (transações + contas), mescla e ordena por data; botão "Carregar mais" amplia o limite em +30 e refaz a busca. Evita carregar o histórico inteiro de uma vez conforme a base cresce.
 
 ### 7.2 Filtrar por período ✅
 Como MEI, quero ver só os lançamentos de um mês específico (o atual, o passado, ou um intervalo customizado), para fechar as contas de um período sem rolar a lista toda.
@@ -167,7 +168,8 @@ Como MEI, quero ver rapidamente quais clientes estão em débito e quais estão 
 
 ### 8.2 Buscar cliente por nome ✅
 Como MEI, quero buscar um cliente pelo nome numa lista que pode crescer bastante, para não precisar rolar até achar.
-- Campo de busca no topo de `ClientesScreen`, filtro client-side por substring no nome — mesmo padrão do Histórico.
+- Campo de busca no topo de `ClientesScreen`; a busca (com debounce de 300ms) roda **direto no servidor** (`ilike`), não só sobre a página já carregada, então encontra qualquer cliente ativo mesmo que esteja em páginas ainda não carregadas.
+- **Paginação**: lista principal (sem busca) usa keyset por `nome` (páginas de 30, "Carregar mais" busca `nome > último carregado`); os agregados de débito/último lançamento são calculados só para os clientes da página atual, não para a empresa inteira.
 
 ### 8.3 Cadastrar/editar cliente ✅
 Como MEI, quero cadastrar um novo cliente (nome, telefone) ou editar um existente, para manter minha base de clientes atualizada.
@@ -188,6 +190,8 @@ Como MEI, quero registrar mais de um contato por cliente (ex.: financeiro, respo
 ## 9. MRR / Assinantes Mensais
 
 Já especificado em [0001-mrr-assinantes](0001-mrr-assinantes/requirements.md): criar assinatura (cliente + valor + dia de vencimento), listar assinantes ativos com status do mês, MRR total, ficha do assinante com histórico de cobranças, "Baixar Pagamento" (RPC `registrar_pagamento_assinatura`), editar/cancelar assinatura. Status calculado on-demand, sem cron.
+
+**Paginação**: a lista de assinantes usa keyset por `created_at` (páginas de 30, "Carregar mais"); os cards "Ativos" e "MRR" continuam refletindo o total real da empresa (RPC `calcular_mrr` + contagem separada), não só o que está carregado na tela.
 
 ---
 

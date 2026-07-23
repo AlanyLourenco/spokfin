@@ -27,7 +27,7 @@ Catálogo completo com critérios de aceite em [historias-de-usuario.md](histori
 | Avisos in-app (vencimento + assinatura atrasada) | ✅ Completo |
 | Navegação (shell, ações rápidas) | ✅ Completo |
 
-**Pendência operacional, não de código**: migration `0009_arquivar_cliente.sql` precisa ser rodada no Supabase (adiciona `clientes.ativo`) — sem ela, excluir/arquivar cliente quebra com `column clientes.ativo does not exist`.
+Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` já foram rodadas no Supabase — nenhuma pendência operacional em aberto no momento.
 
 ---
 
@@ -52,6 +52,10 @@ Catálogo completo com critérios de aceite em [historias-de-usuario.md](histori
 | Persistência de PDF | Recibo e relatório de período são gerados 100% client-side e compartilhados via share sheet nativo — nada fica armazenado no Supabase Storage, então não há dado sensível "esquecido" em disco |
 | Qualidade de código | `flutter_lints` configurado, `flutter analyze` limpo em todo o projeto |
 | Convenção de mudança | Prática de SDD (`specs/NNNN-nome/requirements.md` → `design.md` → `tasks.md`) para toda feature nova a partir da Fase 2 |
+| Testes automatizados (N1) | `test/wav_encoder_test.dart`, `test/lancamento_extraido_test.dart`, `test/widget_test.dart` — cobrem a lógica pura testável em Dart (WAV encoding, parsing da extração de IA); regras de negócio que vivem só em SQL (`calcular_saldo` etc.) ainda não têm teste automatizado — ver nota em N1 abaixo |
+| CI (N2) | GitHub Actions (`.github/workflows/ci.yml`) rodando `flutter analyze` + `flutter test` a cada push, no repositório `github.com/AlanyLourenco/spokfin` |
+| Rate limiting nas Edge Functions de IA (N4) | Migration `0010_rate_limit_ia.sql` (tabela `ia_uso` + RPC `registrar_uso_ia`) — 30 chamadas/hora por usuário, checado antes de gastar com a OpenAI em `parse-lancamento` e `transcrever-audio` |
+| Paginação nas listas (N5) | Histórico (limite crescente sobre as 2 fontes mescladas + "Carregar mais"), Clientes (keyset por `nome` + busca server-side com debounce) e MRR (keyset por `created_at`) — todas em páginas de 30 itens |
 
 ---
 
@@ -59,11 +63,8 @@ Catálogo completo com critérios de aceite em [historias-de-usuario.md](histori
 
 | # | Requisito | Categoria | Impacto se não resolvido |
 |---|---|---|---|
-| N1 | Testes automatizados (unit para regras críticas: `calcular_saldo`, troca pago↔pendente, RLS) | Qualidade | Só existe o `widget_test.dart` padrão do Flutter — hoje toda regressão é pega manualmente |
-| N2 | CI (rodar `flutter analyze` + testes a cada push) | Qualidade | Sem N1 primeiro, não há o que rodar de útil |
-| N3 | Monitoramento de erros em produção (ex: Sentry) | Observabilidade | Hoje um erro em produção só aparece se o usuário reportar |
-| N4 | Rate limiting / limite de uso nas Edge Functions de IA (`parse-lancamento`, `transcrever-audio`) | Segurança/Custo | Sem isso, uso indevido ou bug em loop pode gerar custo de API descontrolado |
-| N5 | Paginação nas listas (Histórico, Clientes, MRR) | Performance | Hoje carrega tudo de uma vez; funciona bem com poucos registros, degrada conforme a base cresce |
+| N1' | Testes automatizados para regras de negócio que vivem só em SQL (`calcular_saldo`, troca pago↔pendente, RLS) | Qualidade | A parte Dart-testável de N1 já foi feita; falta a parte que exigiria um projeto Supabase de teste (pgTAP ou script de integração) — decisão de infra em aberto |
+| N3 | Monitoramento de erros em produção (ex: Sentry) | Observabilidade | Hoje um erro em produção só aparece se o usuário reportar — adiado a pedido até a Fase E (produção) |
 | N6 | Política de Privacidade + Termos de Uso | Legal/LGPD | Bloqueador para lançamento público — app guarda dados pessoais de clientes (nome, telefone) |
 | N7 | Fluxo de exclusão de conta e dados do próprio usuário (direito ao esquecimento) | Legal/LGPD | Hoje só existe exclusão de *cliente*; não existe "excluir minha conta/empresa" |
 | N8 | Consentimento explícito no cadastro (aceite de termos) | Legal/LGPD | Depende de N6 existir primeiro |
@@ -81,22 +82,22 @@ Ordenado por **dependência real** — cada fase assume que a anterior está pro
 
 ```mermaid
 flowchart TD
-    A["Fase A — Destravar o que já está pronto"] --> B["Fase B — Rede de segurança técnica"]
-    B --> C["Fase C — Performance"]
+    A["Fase A — Destravar o que já está pronto ✅"] --> B["Fase B — Rede de segurança técnica ✅"]
+    B --> C["Fase C — Performance ✅"]
     B --> D["Fase D — Conformidade legal (LGPD)"]
     C --> E["Fase E — Preparar distribuição"]
     D --> E
     E --> F["Fase F — Publicar e expandir"]
 
-    A1["Rodar migration 0009"] --> A
+    A1["Rodar migrations 0009/0010 ✅"] --> A
     A2["Confirmar plano Supabase (N13)"] --> A
 
-    B1["Testes automatizados (N1)"] --> B2["CI (N2)"]
-    B3["Monitoramento de erros (N3)"] --> B
-    B4["Rate limiting Edge Functions (N4)"] --> B
+    B1["Testes automatizados Dart (N1) ✅"] --> B2["CI (N2) ✅"]
+    B3["Monitoramento de erros (N3) — adiado p/ Fase E"] --> B
+    B4["Rate limiting Edge Functions (N4) ✅"] --> B
     B1 --> B
 
-    C1["Paginação nas listas (N5)"] --> C
+    C1["Paginação nas listas (N5) ✅"] --> C
 
     D1["Política de Privacidade + Termos (N6)"] --> D2["Consentimento no cadastro (N8)"]
     D3["Exclusão de conta/dados (N7)"] --> D
@@ -110,21 +111,19 @@ flowchart TD
     F3["Notificação push nativa (F2)"] --> F
 ```
 
-### Fase A — Destravar o que já está pronto
-*Sem dependências técnicas; pode começar imediatamente.*
-- Rodar `supabase/migrations/0009_arquivar_cliente.sql` no SQL Editor.
-- Confirmar/decidir o plano Supabase (N13) — define se backup automático e limites atuais são adequados antes de crescer a base de dados.
+### Fase A — Destravar o que já está pronto ✅
+- ✅ Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` rodadas no Supabase.
+- ⚠️ **N13** ainda em aberto: confirmar/decidir o plano Supabase (backup automático e limites) antes de crescer a base de dados.
 
-### Fase B — Rede de segurança técnica
-*Depende da Fase A só no sentido de "app já funcional"; tecnicamente pode começar em paralelo com A.*
-- **N1** Testes automatizados das regras de negócio mais críticas (cálculo de saldo, troca pago↔pendente, RLS por empresa) — é a base para tudo que vem depois, já que sem isso qualquer mudança futura arrisca regressão silenciosa.
-- **N2** CI rodando `flutter analyze` + os testes de N1 a cada push — só faz sentido depois de N1 existir.
-- **N3** Monitoramento de erros em produção (Sentry ou similar) — independente, mas idealmente entra antes do deploy público (Fase E).
-- **N4** Rate limiting nas Edge Functions de IA — independente, mas crítico antes de qualquer exposição pública (Fase E), pra não tomar um susto de fatura da OpenAI.
+### Fase B — Rede de segurança técnica ✅ (parcial)
+- ✅ **N1 (parte Dart)** Testes automatizados da lógica pura testável em Flutter (WAV encoder, parsing da extração de IA).
+- ⚠️ **N1'** Falta a parte que exigiria infraestrutura de teste separada (regras que vivem só em SQL: `calcular_saldo`, troca pago↔pendente, RLS) — decisão de infra em aberto (pgTAP vs. projeto Supabase de teste).
+- ✅ **N2** CI (GitHub Actions) rodando `flutter analyze` + os testes de N1 a cada push, repositório `github.com/AlanyLourenco/spokfin`.
+- ⏸️ **N3** Monitoramento de erros — adiado a pedido para a Fase E (quando o app for para produção).
+- ✅ **N4** Rate limiting nas Edge Functions de IA (30 chamadas/hora por usuário).
 
-### Fase C — Performance
-*Depende da Fase B (N1) existir para não paginar às cegas sem cobertura de teste.*
-- **N5** Paginação em Histórico, Clientes e MRR.
+### Fase C — Performance ✅
+- ✅ **N5** Paginação em Histórico (páginas de 30, mesclando 2 fontes), Clientes (keyset por nome + busca server-side) e MRR (keyset por `created_at`).
 
 ### Fase D — Conformidade legal (LGPD)
 *Pode rodar em paralelo à Fase C — não depende de código, depende de decisão de produto/jurídico.*

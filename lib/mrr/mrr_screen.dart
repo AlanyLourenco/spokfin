@@ -6,6 +6,8 @@ import '../theme.dart';
 import 'ficha_assinante_screen.dart';
 import 'nova_assinatura_screen.dart';
 
+const _tamanhoPagina = 30;
+
 class MrrScreen extends StatefulWidget {
   const MrrScreen({super.key, required this.empresaId});
 
@@ -16,31 +18,93 @@ class MrrScreen extends StatefulWidget {
 }
 
 class _MrrScreenState extends State<MrrScreen> {
-  late Future<_MrrDados> _future;
+  double? _mrr;
+  int? _totalAtivos;
+  List<Map<String, dynamic>>? _assinaturas;
+  bool _temMais = false;
+  bool _carregandoMais = false;
+  String? _ultimoCreatedAt;
+  String? _erro;
 
   @override
   void initState() {
     super.initState();
-    _future = _carregar();
+    _carregar();
   }
 
   void _recarregar() {
-    setState(() {
-      _future = _carregar();
-    });
+    _ultimoCreatedAt = null;
+    _carregar();
   }
 
-  Future<_MrrDados> _carregar() async {
-    final mrr = await supabase.rpc(
-      'calcular_mrr',
-      params: {'p_empresa_id': widget.empresaId},
-    );
+  Future<void> _carregar() async {
+    setState(() {
+      _assinaturas = null;
+      _erro = null;
+    });
+    try {
+      final mrr = await supabase.rpc(
+        'calcular_mrr',
+        params: {'p_empresa_id': widget.empresaId},
+      );
 
-    final assinaturas = await supabase
+      final ativos = await supabase
+          .from('assinaturas')
+          .select('id')
+          .eq('empresa_id', widget.empresaId)
+          .eq('status', 'ativa');
+
+      final pagina = await _buscarPagina(cursor: null);
+      if (!mounted) return;
+      setState(() {
+        _mrr = (mrr as num).toDouble();
+        _totalAtivos = ativos.length;
+        _assinaturas = pagina.itens;
+        _temMais = pagina.temMais;
+        _ultimoCreatedAt = pagina.itens.isEmpty
+            ? null
+            : pagina.itens.last['created_at'] as String;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _erro = e.toString());
+    }
+  }
+
+  Future<void> _carregarMais() async {
+    setState(() => _carregandoMais = true);
+    try {
+      final pagina = await _buscarPagina(cursor: _ultimoCreatedAt);
+      if (!mounted) return;
+      setState(() {
+        _assinaturas = [...?_assinaturas, ...pagina.itens];
+        _temMais = pagina.temMais;
+        if (pagina.itens.isNotEmpty) {
+          _ultimoCreatedAt = pagina.itens.last['created_at'] as String;
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Erro ao carregar mais: $e')));
+    } finally {
+      if (mounted) setState(() => _carregandoMais = false);
+    }
+  }
+
+  Future<_PaginaAssinaturas> _buscarPagina({required String? cursor}) async {
+    var query = supabase
         .from('assinaturas_com_status')
         .select()
-        .eq('empresa_id', widget.empresaId)
-        .order('created_at', ascending: false);
+        .eq('empresa_id', widget.empresaId);
+    if (cursor != null) {
+      query = query.lt('created_at', cursor);
+    }
+    final rows = await query
+        .order('created_at', ascending: false)
+        .limit(_tamanhoPagina);
+    final assinaturas = List<Map<String, dynamic>>.from(rows);
 
     final clienteIds = assinaturas
         .map((a) => a['cliente_id'] as String)
@@ -63,7 +127,10 @@ class _MrrScreenState extends State<MrrScreen> {
         {...a, 'cliente_nome': nomesPorId[a['cliente_id']] ?? '—'},
     ];
 
-    return _MrrDados(mrr: (mrr as num).toDouble(), assinaturas: lista);
+    return _PaginaAssinaturas(
+      itens: lista,
+      temMais: assinaturas.length >= _tamanhoPagina,
+    );
   }
 
   Future<void> _novaAssinatura() async {
@@ -112,16 +179,15 @@ class _MrrScreenState extends State<MrrScreen> {
           ),
         ],
       ),
-      body: FutureBuilder<_MrrDados>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+      body: Builder(
+        builder: (context) {
+          if (_erro != null) {
+            return Center(child: Text('Erro: $_erro'));
+          }
+          if (_assinaturas == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          }
-          final dados = snapshot.data!;
+          final assinaturas = _assinaturas!;
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
             children: [
@@ -141,7 +207,7 @@ class _MrrScreenState extends State<MrrScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${dados.assinaturas.length}',
+                            '${_totalAtivos ?? 0}',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -166,7 +232,7 @@ class _MrrScreenState extends State<MrrScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'R\$ ${dados.mrr.toStringAsFixed(2)}',
+                            'R\$ ${(_mrr ?? 0).toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: AppColors.accent,
                               fontSize: 22,
@@ -180,7 +246,7 @@ class _MrrScreenState extends State<MrrScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              if (dados.assinaturas.isEmpty)
+              if (assinaturas.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 32),
                   child: Center(
@@ -190,9 +256,26 @@ class _MrrScreenState extends State<MrrScreen> {
                     ),
                   ),
                 )
-              else
-                for (final a in dados.assinaturas)
+              else ...[
+                for (final a in assinaturas)
                   _AssinaturaTile(assinatura: a, onTap: () => _abrirFicha(a)),
+                if (_temMais)
+                  Center(
+                    child: _carregandoMais
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : TextButton(
+                            onPressed: _carregarMais,
+                            child: const Text('Carregar mais'),
+                          ),
+                  ),
+              ],
             ],
           );
         },
@@ -201,11 +284,11 @@ class _MrrScreenState extends State<MrrScreen> {
   }
 }
 
-class _MrrDados {
-  _MrrDados({required this.mrr, required this.assinaturas});
+class _PaginaAssinaturas {
+  _PaginaAssinaturas({required this.itens, required this.temMais});
 
-  final double mrr;
-  final List<Map<String, dynamic>> assinaturas;
+  final List<Map<String, dynamic>> itens;
+  final bool temMais;
 }
 
 class _AssinaturaTile extends StatelessWidget {
