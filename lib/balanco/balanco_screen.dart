@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
+import '../lancamentos/detalhes_lancamento_screen.dart';
+import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
@@ -18,6 +22,15 @@ const _nomesMesesCompletos = [
   'Outubro',
   'Novembro',
   'Dezembro',
+];
+
+const _paletaCategoria = [
+  AppColors.accent,
+  AppColors.negative,
+  Color(0xFF60A5FA),
+  Color(0xFFFBBF24),
+  Color(0xFFA78BFA),
+  Color(0xFF5EEAD4),
 ];
 
 class BalancoScreen extends StatefulWidget {
@@ -39,42 +52,150 @@ class _BalancoScreenState extends State<BalancoScreen> {
     _future = _carregar();
   }
 
-  void _mesAnterior() {
-    setState(() {
-      _mes = DateTime(_mes.year, _mes.month - 1);
-      _future = _carregar();
-    });
+  void _recarregar() {
+    setState(() => _future = _carregar());
   }
 
-  void _mesSeguinte() {
-    setState(() {
-      _mes = DateTime(_mes.year, _mes.month + 1);
-      _future = _carregar();
-    });
+  Future<void> _abrirSeletorMes() async {
+    final opcoes = List.generate(12, (i) => DateTime(_mes.year, _mes.month - i));
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: 360,
+          child: ListView(
+            children: [
+              for (final m in opcoes)
+                ListTile(
+                  title: Text('${_nomesMesesCompletos[m.month - 1]} de ${m.year}'),
+                  trailing: (m.year == _mes.year && m.month == _mes.month)
+                      ? const Icon(Icons.check, color: AppColors.accent)
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _mes = DateTime(m.year, m.month);
+                      _future = _carregar();
+                    });
+                    Navigator.of(context).pop();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _abrirDetalhes(_LancamentoMes item) async {
+    final alterou = await mostrarDetalhesLancamento(
+      context,
+      empresaId: widget.empresaId,
+      lancamento: LancamentoDetalhado(
+        id: item.id,
+        origem: 'transacao',
+        descricao: item.descricao,
+        categoria: item.categoria,
+        valor: item.valor,
+        tipo: item.tipo,
+        data: item.data,
+        status: 'pago',
+        clienteId: item.clienteId,
+        clienteNome: item.clienteNome,
+        notaFiscalStatus: item.notaFiscalStatus,
+      ),
+    );
+    if (alterou == true) _recarregar();
   }
 
   Future<_BalancoDados> _carregar() async {
     final inicio = DateTime(_mes.year, _mes.month, 1);
     final fim = DateTime(_mes.year, _mes.month + 1, 1);
+    final diasNoMes = fim.subtract(const Duration(days: 1)).day;
 
     final transacoes = await supabase
         .from('transacoes')
-        .select('tipo, valor')
+        .select()
         .eq('empresa_id', widget.empresaId)
         .gte('data_transacao', inicio.toIso8601String().split('T').first)
-        .lt('data_transacao', fim.toIso8601String().split('T').first);
+        .lt('data_transacao', fim.toIso8601String().split('T').first)
+        .order('data_transacao', ascending: false);
+
+    final clienteIds = <String>{
+      for (final t in transacoes)
+        if (t['cliente_id'] != null) t['cliente_id'] as String,
+    }.toList();
+    final clientes = clienteIds.isEmpty
+        ? <Map<String, dynamic>>[]
+        : List<Map<String, dynamic>>.from(
+            await supabase
+                .from('clientes')
+                .select('id, nome')
+                .inFilter('id', clienteIds),
+          );
+    final nomesPorId = {
+      for (final c in clientes) c['id'] as String: c['nome'] as String,
+    };
 
     double receitas = 0;
     double despesas = 0;
+    final entradaPorDia = <int, double>{};
+    final saidaPorDia = <int, double>{};
+    final categoriaTotais = <String, double>{};
+    final lancamentos = <_LancamentoMes>[];
+
     for (final t in transacoes) {
       final valor = (t['valor'] as num).toDouble();
-      if (t['tipo'] == 'entrada') {
+      final data = DateTime.parse(t['data_transacao'] as String);
+      final tipo = t['tipo'] as String;
+      final categoriaBruta = (t['categoria'] as String?)?.trim();
+      final categoria = (categoriaBruta == null || categoriaBruta.isEmpty)
+          ? 'Outros'
+          : categoriaBruta;
+
+      if (tipo == 'entrada') {
         receitas += valor;
+        entradaPorDia[data.day] = (entradaPorDia[data.day] ?? 0) + valor;
       } else {
         despesas += valor;
+        saidaPorDia[data.day] = (saidaPorDia[data.day] ?? 0) + valor;
+        categoriaTotais[categoria] = (categoriaTotais[categoria] ?? 0) + valor;
       }
+
+      final clienteId = t['cliente_id'] as String?;
+      lancamentos.add(
+        _LancamentoMes(
+          id: t['id'] as String,
+          descricao: t['descricao'] as String? ?? '',
+          categoria: categoria,
+          valor: valor,
+          tipo: tipo,
+          data: data,
+          clienteId: clienteId,
+          clienteNome: clienteId == null ? null : nomesPorId[clienteId],
+          notaFiscalStatus: t['nota_fiscal_status'] as String,
+        ),
+      );
     }
-    return _BalancoDados(receitas: receitas, despesas: despesas);
+
+    final categoriasDespesa =
+        categoriaTotais.entries
+            .map((e) => _CategoriaValor(categoria: e.key, valor: e.value))
+            .toList()
+          ..sort((a, b) => b.valor.compareTo(a.valor));
+
+    return _BalancoDados(
+      receitas: receitas,
+      despesas: despesas,
+      entradaPorDia: entradaPorDia,
+      saidaPorDia: saidaPorDia,
+      diasNoMes: diasNoMes,
+      categoriasDespesa: categoriasDespesa,
+      lancamentos: lancamentos,
+    );
   }
 
   @override
@@ -91,7 +212,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
       ),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
+          constraints: const BoxConstraints(maxWidth: 480),
           child: FutureBuilder<_BalancoDados>(
             future: _future,
             builder: (context, snapshot) {
@@ -103,112 +224,373 @@ class _BalancoScreenState extends State<BalancoScreen> {
               }
               final dados = snapshot.data!;
               final liquido = dados.receitas - dados.despesas;
-              return ListView(
+              final totalDespesas = dados.categoriasDespesa.fold<double>(
+                0,
+                (s, c) => s + c.valor,
+              );
+              final maiorCategoria = dados.categoriasDespesa.isEmpty
+                  ? 1.0
+                  : dados.categoriasDespesa.first.valor;
+
+              return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: _mesAnterior,
-                      ),
-                      Text(
-                        '${_nomesMesesCompletos[_mes.month - 1]} ${_mes.year}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: _mesSeguinte,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'LUCRO LÍQUIDO',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: InkWell(
+                        onTap: _abrirSeletorMes,
+                        borderRadius: BorderRadius.circular(999),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: AppColors.hairline),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${_nomesMesesCompletos[_mes.month - 1]} de ${_mes.year}',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: AppColors.textMuted,
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          formatarMoeda(liquido),
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: liquido >= 0
-                                ? AppColors.accent
-                                : AppColors.negative,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AppCard(
+                      borderRadius: 24,
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'LUCRO LÍQUIDO',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            formatarValorCifrao(liquido),
+                            style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
+                              color: liquido >= 0
+                                  ? AppColors.accent
+                                  : AppColors.negative,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppCard(
+                            borderRadius: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'FATURAMENTO',
+                                  style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formatarValorCifrao(dados.receitas),
+                                  style: const TextStyle(
+                                    color: AppColors.accent,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: AppCard(
+                            borderRadius: 20,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'CUSTOS',
+                                  style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontSize: 11,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  formatarValorCifrao(dados.despesas),
+                                  style: const TextStyle(
+                                    color: AppColors.negative,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 20),
+                    AppCard(
+                      borderRadius: 20,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text(
-                                'RECEITAS',
+                                'ENTRADAS VS SAÍDAS',
                                 style: TextStyle(
                                   color: AppColors.textMuted,
                                   fontSize: 11,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                formatarMoeda(dados.receitas),
-                                style: const TextStyle(
-                                  color: AppColors.accent,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'DESPESAS',
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 11,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                formatarMoeda(dados.despesas),
-                                style: const TextStyle(
-                                  color: AppColors.negative,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _legendaPonto(AppColors.accent, 'in'),
+                                  const SizedBox(width: 10),
+                                  _legendaPonto(AppColors.negative, 'out'),
+                                ],
                               ),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                          _EntradasSaidasChart(
+                            entradaPorDia: dados.entradaPorDia,
+                            saidaPorDia: dados.saidaPorDia,
+                            diasNoMes: dados.diasNoMes,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 20),
+                    AppCard(
+                      borderRadius: 20,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'GASTOS POR CATEGORIA',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 11,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (dados.categoriasDespesa.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: Text(
+                                  'Nenhum gasto registrado neste mês',
+                                  style: TextStyle(color: AppColors.textMuted),
+                                ),
+                              ),
+                            )
+                          else ...[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                _DonutChart(
+                                  tamanho: 96,
+                                  fatias: [
+                                    for (
+                                      var i = 0;
+                                      i < dados.categoriasDespesa.length;
+                                      i++
+                                    )
+                                      _FatiaCategoria(
+                                        valor: dados.categoriasDespesa[i].valor,
+                                        cor:
+                                            _paletaCategoria[i %
+                                                _paletaCategoria.length],
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(width: 20),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      for (
+                                        var i = 0;
+                                        i < dados.categoriasDespesa.length;
+                                        i++
+                                      )
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 6,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color:
+                                                      _paletaCategoria[i %
+                                                          _paletaCategoria
+                                                              .length],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  dados
+                                                      .categoriasDespesa[i]
+                                                      .categoria,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
+                                              Text(
+                                                '${(dados.categoriasDespesa[i].valor / totalDespesas * 100).round()}%',
+                                                style: const TextStyle(
+                                                  color: AppColors.textMuted,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Divider(color: AppColors.hairline, height: 1),
+                            const SizedBox(height: 12),
+                            for (
+                              var i = 0;
+                              i < dados.categoriasDespesa.length;
+                              i++
+                            )
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          dados.categoriasDespesa[i].categoria,
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          formatarValorCifrao(
+                                            dados.categoriasDespesa[i].valor,
+                                          ),
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: LinearProgressIndicator(
+                                        value:
+                                            dados.categoriasDespesa[i].valor /
+                                            maiorCategoria,
+                                        minHeight: 6,
+                                        backgroundColor: AppColors.surfaceAlt,
+                                        color:
+                                            _paletaCategoria[i %
+                                                _paletaCategoria.length],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'LANÇAMENTOS DE ${_nomesMesesCompletos[_mes.month - 1]} DE ${_mes.year}'
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (dados.lancamentos.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: Text(
+                            'Nenhum lançamento neste mês',
+                            style: TextStyle(color: AppColors.textMuted),
+                          ),
+                        ),
+                      )
+                    else
+                      for (final item in dados.lancamentos)
+                        _LancamentoMesTile(
+                          item: item,
+                          onTap: () => _abrirDetalhes(item),
+                        ),
+                  ],
+                ),
               );
             },
           ),
@@ -216,11 +598,280 @@ class _BalancoScreenState extends State<BalancoScreen> {
       ),
     );
   }
+
+  Widget _legendaPonto(Color cor, String rotulo) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: cor),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          rotulo,
+          style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+        ),
+      ],
+    );
+  }
 }
 
 class _BalancoDados {
-  _BalancoDados({required this.receitas, required this.despesas});
+  _BalancoDados({
+    required this.receitas,
+    required this.despesas,
+    required this.entradaPorDia,
+    required this.saidaPorDia,
+    required this.diasNoMes,
+    required this.categoriasDespesa,
+    required this.lancamentos,
+  });
 
   final double receitas;
   final double despesas;
+  final Map<int, double> entradaPorDia;
+  final Map<int, double> saidaPorDia;
+  final int diasNoMes;
+  final List<_CategoriaValor> categoriasDespesa;
+  final List<_LancamentoMes> lancamentos;
+}
+
+class _CategoriaValor {
+  _CategoriaValor({required this.categoria, required this.valor});
+
+  final String categoria;
+  final double valor;
+}
+
+class _LancamentoMes {
+  _LancamentoMes({
+    required this.id,
+    required this.descricao,
+    required this.categoria,
+    required this.valor,
+    required this.tipo,
+    required this.data,
+    required this.notaFiscalStatus,
+    this.clienteId,
+    this.clienteNome,
+  });
+
+  final String id;
+  final String descricao;
+  final String categoria;
+  final double valor;
+  final String tipo;
+  final DateTime data;
+  final String notaFiscalStatus;
+  final String? clienteId;
+  final String? clienteNome;
+}
+
+class _EntradasSaidasChart extends StatelessWidget {
+  const _EntradasSaidasChart({
+    required this.entradaPorDia,
+    required this.saidaPorDia,
+    required this.diasNoMes,
+  });
+
+  final Map<int, double> entradaPorDia;
+  final Map<int, double> saidaPorDia;
+  final int diasNoMes;
+
+  @override
+  Widget build(BuildContext context) {
+    final maximo = [
+      ...entradaPorDia.values,
+      ...saidaPorDia.values,
+    ].fold<double>(1, (m, v) => v > m ? v : m);
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 70,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (var dia = 1; dia <= diasNoMes; dia++)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 0.6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height:
+                                3 +
+                                ((entradaPorDia[dia] ?? 0) / maximo) * 60,
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 1),
+                        Expanded(
+                          child: Container(
+                            height: 3 + ((saidaPorDia[dia] ?? 0) / maximo) * 60,
+                            decoration: BoxDecoration(
+                              color: AppColors.negative,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Text(
+              '01',
+              style: TextStyle(fontSize: 9, color: AppColors.textMuted),
+            ),
+            const Spacer(),
+            Text(
+              (diasNoMes / 2).round().toString().padLeft(2, '0'),
+              style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+            ),
+            const Spacer(),
+            Text(
+              '$diasNoMes',
+              style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FatiaCategoria {
+  _FatiaCategoria({required this.valor, required this.cor});
+
+  final double valor;
+  final Color cor;
+}
+
+class _DonutChart extends StatelessWidget {
+  const _DonutChart({required this.fatias, required this.tamanho});
+
+  final List<_FatiaCategoria> fatias;
+  final double tamanho;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: tamanho,
+      height: tamanho,
+      child: CustomPaint(painter: _DonutPainter(fatias)),
+    );
+  }
+}
+
+class _DonutPainter extends CustomPainter {
+  _DonutPainter(this.fatias);
+
+  final List<_FatiaCategoria> fatias;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final total = fatias.fold<double>(0, (s, f) => s + f.valor);
+    if (total <= 0) return;
+
+    final strokeWidth = size.width * 0.22;
+    final rect = Rect.fromLTWH(
+      strokeWidth / 2,
+      strokeWidth / 2,
+      size.width - strokeWidth,
+      size.height - strokeWidth,
+    );
+
+    var anguloInicial = -pi / 2;
+    const gap = 0.03;
+    for (final fatia in fatias) {
+      final varredura = (fatia.valor / total) * 2 * pi;
+      final paint = Paint()
+        ..color = fatia.cor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
+      canvas.drawArc(
+        rect,
+        anguloInicial + gap / 2,
+        (varredura - gap).clamp(0, varredura),
+        false,
+        paint,
+      );
+      anguloInicial += varredura;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutPainter oldDelegate) =>
+      oldDelegate.fatias != fatias;
+}
+
+class _LancamentoMesTile extends StatelessWidget {
+  const _LancamentoMesTile({required this.item, required this.onTap});
+
+  final _LancamentoMes item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final positivo = item.tipo == 'entrada';
+    final cor = positivo ? AppColors.accent : AppColors.negative;
+    final sinal = positivo ? '+' : '-';
+    final subtitulo =
+        '${item.data.day.toString().padLeft(2, '0')}/${item.data.month.toString().padLeft(2, '0')}/${item.data.year} · Pago · ${item.categoria}';
+
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.hairline)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.descricao,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitulo,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '$sinal ${formatarValorCifrao(item.valor)}',
+              style: TextStyle(color: cor, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
