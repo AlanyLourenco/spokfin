@@ -56,7 +56,7 @@ ThemeData buildAppTheme() {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.accent,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
       ),
@@ -66,8 +66,16 @@ ThemeData buildAppTheme() {
         backgroundColor: AppColors.surfaceAlt,
         foregroundColor: AppColors.textMuted,
         selectedBackgroundColor: AppColors.accent,
-        selectedForegroundColor: Colors.black,
+        selectedForegroundColor: AppColors.background,
       ),
+    ),
+    scrollbarTheme: ScrollbarThemeData(
+      thickness: const WidgetStatePropertyAll(4),
+      radius: const Radius.circular(999),
+      thumbColor: WidgetStatePropertyAll(Colors.white.withValues(alpha: 0.15)),
+      trackColor: const WidgetStatePropertyAll(Colors.transparent),
+      trackBorderColor: const WidgetStatePropertyAll(Colors.transparent),
+      crossAxisMargin: 2,
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(

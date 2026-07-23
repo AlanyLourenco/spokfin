@@ -149,24 +149,21 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
   }
 
   Future<void> _abrirDetalhes(_ItemHistorico item) async {
-    final alterou = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => DetalhesLancamentoScreen(
-          empresaId: widget.empresaId,
-          lancamento: LancamentoDetalhado(
-            id: item.id,
-            origem: item.origem,
-            descricao: item.descricao,
-            categoria: item.categoria,
-            valor: item.valor,
-            tipo: item.tipo,
-            data: item.data,
-            status: item.status,
-            clienteId: _clienteId,
-            clienteNome: _nome,
-            notaFiscalStatus: item.notaFiscalStatus,
-          ),
-        ),
+    final alterou = await mostrarDetalhesLancamento(
+      context,
+      empresaId: widget.empresaId,
+      lancamento: LancamentoDetalhado(
+        id: item.id,
+        origem: item.origem,
+        descricao: item.descricao,
+        categoria: item.categoria,
+        valor: item.valor,
+        tipo: item.tipo,
+        data: item.data,
+        status: item.status,
+        clienteId: _clienteId,
+        clienteNome: _nome,
+        notaFiscalStatus: item.notaFiscalStatus,
       ),
     );
     if (alterou == true) _recarregar();

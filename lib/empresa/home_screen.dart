@@ -8,23 +8,8 @@ import '../lancamentos/lancamento_detalhado.dart';
 import '../lancamentos/revisar_lancamento_screen.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
-
-/// Formato "$ 1,250.00" usado especificamente na Home, seguindo à risca a
-/// referência de design da tela — as demais telas usam `formatarMoeda`
-/// (R$ 1.250,00, padrão brasileiro).
-String _formatarValor(num valor) {
-  final negativo = valor < 0;
-  final absoluto = valor.abs();
-  final partes = absoluto.toStringAsFixed(2).split('.');
-  final inteiro = partes[0];
-  final buffer = StringBuffer();
-  for (var i = 0; i < inteiro.length; i++) {
-    if (i > 0 && (inteiro.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(inteiro[i]);
-  }
-  return '${negativo ? '-' : ''}\$ $buffer.${partes[1]}';
-}
 
 class _LancamentoResumo {
   _LancamentoResumo({
@@ -254,24 +239,21 @@ class _HomeTabContentState extends State<HomeTabContent> {
   }
 
   Future<void> _abrirDetalhes(_LancamentoResumo item) async {
-    final alterou = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => DetalhesLancamentoScreen(
-          empresaId: widget.empresaId,
-          lancamento: LancamentoDetalhado(
-            id: item.id,
-            origem: item.origem,
-            descricao: item.descricao,
-            categoria: item.categoria,
-            valor: item.valor,
-            tipo: item.tipo,
-            data: item.data,
-            status: item.status,
-            clienteId: item.clienteId,
-            clienteNome: item.clienteNome,
-            notaFiscalStatus: item.notaFiscalStatus,
-          ),
-        ),
+    final alterou = await mostrarDetalhesLancamento(
+      context,
+      empresaId: widget.empresaId,
+      lancamento: LancamentoDetalhado(
+        id: item.id,
+        origem: item.origem,
+        descricao: item.descricao,
+        categoria: item.categoria,
+        valor: item.valor,
+        tipo: item.tipo,
+        data: item.data,
+        status: item.status,
+        clienteId: item.clienteId,
+        clienteNome: item.clienteNome,
+        notaFiscalStatus: item.notaFiscalStatus,
       ),
     );
     if (alterou == true) _recarregar();
@@ -408,7 +390,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            _formatarValor(dados.saldo),
+                            formatarValorCifrao(dados.saldo),
                             style: const TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 36,
@@ -670,7 +652,7 @@ class _MiniStat extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          _formatarValor(valor),
+          formatarValorCifrao(valor),
           style: TextStyle(
             color: cor,
             fontWeight: FontWeight.bold,
@@ -765,7 +747,7 @@ class _LancamentoTile extends StatelessWidget {
               ),
             ),
             Text(
-              '$sinal ${_formatarValor(lancamento.valor)}',
+              '$sinal ${formatarValorCifrao(lancamento.valor)}',
               style: TextStyle(
                 color: cor,
                 fontWeight: FontWeight.bold,
