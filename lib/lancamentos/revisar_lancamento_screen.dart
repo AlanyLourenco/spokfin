@@ -251,7 +251,6 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
   Widget build(BuildContext context) {
     final rotuloData = _status == 'pendente' ? 'DATA DE VENCIMENTO' : 'DATA';
     final rotuloContato = _ehGasto ? 'FORNECEDOR' : 'CLIENTE';
-    final corBotao = _ehGasto ? AppColors.negative : AppColors.accent;
     return Scaffold(
       appBar: AppBar(title: const Text('Confirmar Lançamento')),
       body: Center(
@@ -605,7 +604,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                 FilledButton(
                   onPressed: _loading ? null : _salvar,
                   style: FilledButton.styleFrom(
-                    backgroundColor: corBotao,
+                    backgroundColor: AppColors.accent,
                     foregroundColor: AppColors.background,
                   ),
                   child: _loading

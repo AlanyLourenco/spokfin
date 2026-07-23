@@ -69,6 +69,75 @@ class _FichaFornecedorScreenState extends State<FichaFornecedorScreen> {
     );
   }
 
+  Future<void> _excluirOuArquivar() async {
+    final fornecedorId = _fornecedor['id'] as String;
+    final temTransacao = await supabase
+        .from('transacoes')
+        .select('id')
+        .eq('cliente_id', fornecedorId)
+        .limit(1);
+    final temConta = await supabase
+        .from('contas_pagar_receber')
+        .select('id')
+        .eq('cliente_id', fornecedorId)
+        .limit(1);
+    final temLancamentos = temTransacao.isNotEmpty || temConta.isNotEmpty;
+
+    if (!mounted) return;
+    if (temLancamentos) {
+      final arquivar = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Fornecedor com lançamentos'),
+          content: Text(
+            '"$_nome" tem lançamentos vinculados, então não pode ser excluído — isso apagaria o histórico. Você pode arquivá-lo: ele some da lista de fornecedores, mas o histórico continua intacto.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Arquivar fornecedor'),
+            ),
+          ],
+        ),
+      );
+      if (arquivar != true) return;
+      await supabase
+          .from('clientes')
+          .update({'ativo': false})
+          .eq('id', fornecedorId);
+      if (mounted) Navigator.of(context).pop(true);
+      return;
+    }
+
+    final excluir = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir fornecedor?'),
+        content: Text(
+          '"$_nome" não tem nenhum lançamento vinculado. Isso vai excluí-lo permanentemente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.negative),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (excluir != true) return;
+    await supabase.from('clientes').delete().eq('id', fornecedorId);
+    if (mounted) Navigator.of(context).pop(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     final iniciais = _nome.isEmpty
@@ -85,6 +154,11 @@ class _FichaFornecedorScreenState extends State<FichaFornecedorScreen> {
       appBar: AppBar(
         title: const Text('Ficha do Fornecedor'),
         actions: [
+          IconButton(
+            onPressed: _excluirOuArquivar,
+            icon: const Icon(Icons.delete_outline, size: 20),
+            tooltip: 'Excluir fornecedor',
+          ),
           TextButton.icon(
             onPressed: _editar,
             icon: const Icon(Icons.edit, size: 16),

@@ -21,6 +21,7 @@ Convenção para desenvolver features neste projeto: antes de escrever código, 
 |---|---------|--------|
 | [0001](0001-mrr-assinantes/) | MRR / Assinantes Mensais | Implementado — falta rodar migration + testar |
 | [0002](0002-ficha-cliente/) | Ficha do Cliente (débito, encarregados, histórico) | Implementado — falta rodar migration + testar |
+| [0003](0003-excluir-fornecedor/) | Excluir/Arquivar Fornecedor | Implementado — falta testar no navegador |
 
 ## Catálogo de histórias de usuário
 

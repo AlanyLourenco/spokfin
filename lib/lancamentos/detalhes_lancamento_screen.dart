@@ -919,9 +919,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           child: FilledButton(
             onPressed: _loading ? null : _salvarEdicao,
             style: FilledButton.styleFrom(
-              backgroundColor: _ehGastoEdicao
-                  ? AppColors.negative
-                  : AppColors.accent,
+              backgroundColor: AppColors.accent,
               foregroundColor: AppColors.background,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
