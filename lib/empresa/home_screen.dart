@@ -601,11 +601,14 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         ),
                       )
                     else
-                      for (final l in dados.recentes)
+                      for (var i = 0; i < dados.recentes.length; i++) ...[
                         _LancamentoTile(
-                          lancamento: l,
-                          onTap: () => _abrirDetalhes(l),
+                          lancamento: dados.recentes[i],
+                          onTap: () => _abrirDetalhes(dados.recentes[i]),
                         ),
+                        if (i < dados.recentes.length - 1)
+                          const Divider(color: AppColors.border, height: 1),
+                      ],
                   ],
                 ),
               ),
@@ -892,13 +895,24 @@ class _LancamentoTile extends StatelessWidget {
                             color: AppColors.accent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Text(
-                            'NFC-e agendada',
-                            style: TextStyle(
-                              color: AppColors.accent,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.receipt_long,
+                                size: 10,
+                                color: AppColors.accent,
+                              ),
+                              SizedBox(width: 3),
+                              Text(
+                                'NFC-e agendada',
+                                style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

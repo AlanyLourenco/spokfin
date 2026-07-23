@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const background = Color(0xFF0B0E11);
-  static const surface = Color(0xFF161B1F);
-  static const surfaceAlt = Color(0xFF1E252A);
-  static const border = Color(0xFF262E33);
+  static const background = Color(0xFF07090C);
+  static const surface = Color(0xFF0F1316);
+  static const surfaceAlt = Color(0xFF151A1D);
+  static const border = Color(0xFF1D2326);
   static const accent = Color(0xFF34D399);
   static const accentStrong = Color(0xFF10B981);
   static const negative = Color(0xFFF87171);
