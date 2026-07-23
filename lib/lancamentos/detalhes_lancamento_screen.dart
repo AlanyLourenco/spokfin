@@ -134,12 +134,28 @@ class _LancamentoModalState extends State<_LancamentoModal> {
   Future<void> _marcarPago() async {
     setState(() => _loading = true);
     try {
-      await supabase.rpc(
+      final resultado = await supabase.rpc(
         'registrar_pagamento',
         params: {'p_conta_id': _lancamento.id},
       );
+      final transacao = resultado as Map<String, dynamic>;
       _alterou = true;
-      if (mounted) Navigator.of(context).pop(true);
+      if (!mounted) return;
+      setState(
+        () => _lancamento = LancamentoDetalhado(
+          id: transacao['id'] as String,
+          origem: 'transacao',
+          descricao: transacao['descricao'] as String? ?? '',
+          categoria: transacao['categoria'] as String? ?? '',
+          valor: (transacao['valor'] as num).toDouble(),
+          tipo: transacao['tipo'] as String,
+          data: DateTime.parse(transacao['data_transacao'] as String),
+          status: 'pago',
+          clienteId: _lancamento.clienteId,
+          clienteNome: _lancamento.clienteNome,
+          notaFiscalStatus: transacao['nota_fiscal_status'] as String,
+        ),
+      );
     } catch (e) {
       _mostrarErro(e);
     } finally {
@@ -150,12 +166,33 @@ class _LancamentoModalState extends State<_LancamentoModal> {
   Future<void> _marcarPendente() async {
     setState(() => _loading = true);
     try {
-      await supabase.rpc(
+      final resultado = await supabase.rpc(
         'marcar_lancamento_pendente',
         params: {'p_transacao_id': _lancamento.id},
       );
+      final conta = resultado as Map<String, dynamic>;
+      final vencimento = DateTime.parse(conta['vencimento'] as String);
+      final hoje = DateTime.now();
+      final atrasado = vencimento.isBefore(
+        DateTime(hoje.year, hoje.month, hoje.day),
+      );
       _alterou = true;
-      if (mounted) Navigator.of(context).pop(true);
+      if (!mounted) return;
+      setState(
+        () => _lancamento = LancamentoDetalhado(
+          id: conta['id'] as String,
+          origem: 'conta',
+          descricao: conta['descricao'] as String? ?? '',
+          categoria: conta['categoria'] as String? ?? '',
+          valor: (conta['valor'] as num).toDouble(),
+          tipo: conta['tipo'] == 'receber' ? 'entrada' : 'saida',
+          data: vencimento,
+          status: atrasado ? 'atrasado' : 'pendente',
+          clienteId: _lancamento.clienteId,
+          clienteNome: _lancamento.clienteNome,
+          notaFiscalStatus: conta['nota_fiscal_status'] as String,
+        ),
+      );
     } catch (e) {
       _mostrarErro(e);
     } finally {
