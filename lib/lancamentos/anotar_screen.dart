@@ -12,6 +12,9 @@ class AnotarScreen extends StatefulWidget {
   State<AnotarScreen> createState() => _AnotarScreenState();
 }
 
+const _tamanhoMaximoTexto = 300;
+const _tamanhoMinimoTexto = 3;
+
 class _AnotarScreenState extends State<AnotarScreen> {
   final _controller = TextEditingController();
   bool _loading = false;
@@ -26,6 +29,8 @@ class _AnotarScreenState extends State<AnotarScreen> {
     for (var tentativa = 0; tentativa < 2; tentativa++) {
       try {
         return await extrairLancamento(texto);
+      } on LimiteIaExcedido {
+        rethrow;
       } catch (_) {
         if (tentativa == 1) return null;
       }
@@ -35,11 +40,26 @@ class _AnotarScreenState extends State<AnotarScreen> {
 
   Future<void> _processar() async {
     final texto = _controller.text.trim();
-    if (texto.isEmpty) return;
+    if (texto.length < _tamanhoMinimoTexto) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Digite pelo menos alguns caracteres.')),
+      );
+      return;
+    }
 
     setState(() => _loading = true);
 
-    final lancamento = await _extrairComRetry(texto);
+    LancamentoExtraido? lancamento;
+    try {
+      lancamento = await _extrairComRetry(texto);
+    } on LimiteIaExcedido catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.mensagem)));
+      return;
+    }
     if (!mounted) return;
     setState(() => _loading = false);
 
@@ -95,6 +115,7 @@ class _AnotarScreenState extends State<AnotarScreen> {
                   controller: _controller,
                   autofocus: true,
                   maxLines: 4,
+                  maxLength: _tamanhoMaximoTexto,
                   decoration: const InputDecoration(
                     labelText: 'Digite o que aconteceu...',
                     hintText: 'ex: recebi 300 do João',

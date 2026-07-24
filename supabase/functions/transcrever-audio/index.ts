@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
             ],
           },
         ],
+        generationConfig: { maxOutputTokens: 1024 },
       }),
     },
   );

@@ -11,6 +11,10 @@ import 'wav_encoder.dart';
 import 'waveform.dart';
 
 const _sampleRate = 16000;
+// 16kHz mono 16-bit: 1s de áudio = 32.000 bytes. Abaixo disso não tem
+// conteúdo útil pra valer uma chamada de IA (ex: toque acidental no mic).
+const _bytesMinimos = _sampleRate * 2;
+const _tamanhoMinimoTranscricao = 3;
 
 class FalarScreen extends StatefulWidget {
   const FalarScreen({super.key, required this.empresaId});
@@ -84,7 +88,10 @@ class _FalarScreenState extends State<FalarScreen> {
     for (var tentativa = 0; tentativa < 2; tentativa++) {
       try {
         final texto = await transcreverAudio(wavBytes, mimeType: 'audio/wav');
+        if (texto.trim().length < _tamanhoMinimoTranscricao) return null;
         return await extrairLancamento(texto);
+      } on LimiteIaExcedido {
+        rethrow;
       } catch (_) {
         if (tentativa == 1) return null;
       }
@@ -100,8 +107,15 @@ class _FalarScreenState extends State<FalarScreen> {
     if (!mounted) return;
 
     final bytes = _audioBytes.takeBytes();
-    if (bytes.isEmpty) {
-      Navigator.of(context).pop();
+    if (bytes.length < _bytesMinimos) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Áudio muito curto — tente falar um pouco mais.'),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
       return;
     }
 
@@ -115,7 +129,17 @@ class _FalarScreenState extends State<FalarScreen> {
       sampleRate: _sampleRate,
       numChannels: 1,
     );
-    final lancamento = await _processarComRetry(wavBytes);
+    LancamentoExtraido? lancamento;
+    try {
+      lancamento = await _processarComRetry(wavBytes);
+    } on LimiteIaExcedido catch (e) {
+      if (!mounted) return;
+      setState(() => _processando = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.mensagem)));
+      return;
+    }
     if (!mounted) return;
     setState(() => _processando = false);
 

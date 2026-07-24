@@ -1,7 +1,25 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../main.dart';
+
+/// Lançada quando uma chamada de IA é recusada por limite de uso atingido
+/// (`registrar_uso_ia`, 429) — distinta de outros erros pra quem chama poder
+/// decidir não tentar de novo (retry só gastaria outra chamada à toa).
+class LimiteIaExcedido implements Exception {
+  LimiteIaExcedido(this.mensagem);
+  final String mensagem;
+}
+
+String _mensagemDoErro(FunctionException e, String fallback) {
+  final details = e.details;
+  if (details is Map && details['error'] is String) {
+    return details['error'] as String;
+  }
+  return fallback;
+}
 
 class LancamentoExtraido {
   LancamentoExtraido({
@@ -44,20 +62,38 @@ class LancamentoExtraido {
 }
 
 Future<LancamentoExtraido> extrairLancamento(String texto) async {
-  final res = await supabase.functions.invoke(
-    'parse-lancamento',
-    body: {'texto': texto},
-  );
-  return LancamentoExtraido.fromJson(res.data as Map<String, dynamic>);
+  try {
+    final res = await supabase.functions.invoke(
+      'parse-lancamento',
+      body: {'texto': texto},
+    );
+    return LancamentoExtraido.fromJson(res.data as Map<String, dynamic>);
+  } on FunctionException catch (e) {
+    if (e.status == 429) {
+      throw LimiteIaExcedido(
+        _mensagemDoErro(e, 'Limite de uso de IA atingido — tente mais tarde.'),
+      );
+    }
+    rethrow;
+  }
 }
 
 Future<String> transcreverAudio(
   Uint8List bytes, {
   String mimeType = 'audio/webm',
 }) async {
-  final res = await supabase.functions.invoke(
-    'transcrever-audio',
-    body: {'audio_base64': base64Encode(bytes), 'mime_type': mimeType},
-  );
-  return (res.data as Map<String, dynamic>)['texto'] as String;
+  try {
+    final res = await supabase.functions.invoke(
+      'transcrever-audio',
+      body: {'audio_base64': base64Encode(bytes), 'mime_type': mimeType},
+    );
+    return (res.data as Map<String, dynamic>)['texto'] as String;
+  } on FunctionException catch (e) {
+    if (e.status == 429) {
+      throw LimiteIaExcedido(
+        _mensagemDoErro(e, 'Limite de uso de IA atingido — tente mais tarde.'),
+      );
+    }
+    rethrow;
+  }
 }

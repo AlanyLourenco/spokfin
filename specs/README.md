@@ -25,6 +25,7 @@ Convenção para desenvolver features neste projeto: antes de escrever código, 
 | [0004](0004-periodo-personalizado-balanco/) | Período Personalizado no Balanço | Implementado — falta testar no navegador |
 | [0005](0005-conformidade-lgpd/) | Conformidade Legal (LGPD): Termos, consentimento, exclusão de conta | Implementado — falta rodar migration 0013 + implantar Edge Function `excluir-conta` + testar |
 | [0006](0006-migrar-ia-gemini/) | Migrar IA de OpenAI para Google Gemini | Implementado — falta configurar `GEMINI_API_KEY` + reimplantar as 2 Edge Functions + testar |
+| [0007](0007-economia-uso-ia/) | Medidas de Economia no Uso de IA | Implementado — falta reimplantar as 2 Edge Functions + testar |
 
 ## Catálogo de histórias de usuário
 
