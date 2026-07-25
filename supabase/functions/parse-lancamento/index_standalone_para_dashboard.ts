@@ -1,6 +1,6 @@
 // Extrai um lançamento estruturado (tipo, valor, descrição, categoria, status,
 // nota fiscal, cliente, data) a partir de texto solto em português, usando o
-// Gemini (gemini-2.0-flash, camada gratuita do Google AI Studio) — usado
+// Gemini (gemini-2.5-flash, camada gratuita do Google AI Studio) — usado
 // pelas telas "Anotar" e "Falar" do app.
 //
 // Versão autocontida (sem import de ../_shared/rate_limit.ts) — só pra colar
@@ -11,7 +11,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-const MODEL = "gemini-2.0-flash";
+const MODEL = "gemini-2.5-flash";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
