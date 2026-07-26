@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
 import 'categorias.dart';
@@ -96,10 +97,11 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
         .order('nome');
     final contatos = List<Map<String, dynamic>>.from(rows);
 
-    final nomeAlvo = widget.lancamento.clienteNome?.toLowerCase().trim();
-    if (nomeAlvo != null && nomeAlvo.isNotEmpty) {
+    final nomeAlvoBruto = widget.lancamento.clienteNome?.trim();
+    if (nomeAlvoBruto != null && nomeAlvoBruto.isNotEmpty) {
+      final nomeAlvo = normalizarNome(nomeAlvoBruto);
       for (final c in contatos) {
-        final nome = (c['nome'] as String).toLowerCase();
+        final nome = normalizarNome(c['nome'] as String);
         if (nome.contains(nomeAlvo) || nomeAlvo.contains(nome)) {
           _clienteId = c['id'] as String;
           break;

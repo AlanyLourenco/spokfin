@@ -22,4 +22,22 @@ void main() {
       expect(formatarMoeda(0), 'R\$ 0,00');
     });
   });
+
+  group('normalizarNome', () {
+    test('remove espaços, acentos e diferenças de maiúscula/minúscula', () {
+      expect(normalizarNome('Damião Torneiro'), 'damiaotorneiro');
+      expect(normalizarNome('damiaotorneiro'), 'damiaotorneiro');
+    });
+
+    test('nomes equivalentes normalizam pro mesmo valor', () {
+      expect(
+        normalizarNome('João da Silva') == normalizarNome('joaodasilva'),
+        isTrue,
+      );
+    });
+
+    test('mantém nomes sem acento inalterados (só remove espaço/caixa)', () {
+      expect(normalizarNome('Peg Pag'), 'pegpag');
+    });
+  });
 }

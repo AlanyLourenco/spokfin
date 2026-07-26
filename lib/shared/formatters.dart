@@ -33,3 +33,22 @@ String formatarValorCifrao(num valor) {
 
   return '${negativo ? '-' : ''}\$ $buffer.${partes[1]}';
 }
+
+const _comAcento = 'áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ';
+const _semAcento = 'aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC';
+
+/// Normaliza um nome pra comparação tolerante a diferenças de acentuação,
+/// espaçamento e maiúsculas/minúsculas — ex: "Damião Torneiro" e
+/// "damiaotorneiro" viram a mesma string ("damiaotorneiro"). Usado pra casar
+/// o nome de cliente/fornecedor que a IA extrai (que vem com acentuação
+/// "correta") com o nome como o usuário cadastrou de fato.
+String normalizarNome(String texto) {
+  final semEspacos = texto.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  final buffer = StringBuffer();
+  for (final rune in semEspacos.runes) {
+    final char = String.fromCharCode(rune);
+    final indice = _comAcento.indexOf(char);
+    buffer.write(indice == -1 ? char : _semAcento[indice]);
+  }
+  return buffer.toString();
+}
