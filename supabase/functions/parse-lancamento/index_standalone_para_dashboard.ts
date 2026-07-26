@@ -78,7 +78,7 @@ Regras:
 - "categoria": uma palavra que categorize (ex: Serviço, Ferramentas, Consultoria, Aluguel, Venda, Impostos).
 - "status": "pago" se o texto está no passado (ex: "recebi", "paguei" — já aconteceu); "pendente" se é algo futuro ou ainda não confirmado (ex: "vou receber", "preciso pagar").
 - "quer_nota_fiscal": true somente se o texto disser explicitamente que o cliente quer/pediu nota fiscal; caso contrário false.
-- "cliente_nome": nome da pessoa/empresa mencionada como cliente, se houver (ex: "recebi 300 do João" -> "João"); caso nenhum nome seja mencionado, retorne null.
+- "cliente_nome": nome da pessoa, empresa, loja ou estabelecimento que é a outra parte do lançamento — um cliente quando é uma entrada (ex: "recebi 300 do João" -> "João") ou um fornecedor/loja quando é uma saída (ex: "comprei 2000 no Peg Pag" -> "Peg Pag", "paguei a conta de luz na Enel" -> "Enel"); caso o texto mencione só um lugar genérico sem nome próprio (ex: "no mercado", "na loja"), retorne null.
 - "data": data do lançamento no formato YYYY-MM-DD. Se nenhuma data for mencionada, use hoje (${hoje}). Se o texto mencionar um dia relativo ("ontem", "anteontem", "semana passada", etc.) ou uma data específica, calcule a data correta a partir de hoje.`;
 }
 
