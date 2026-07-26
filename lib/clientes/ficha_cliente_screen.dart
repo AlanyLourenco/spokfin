@@ -522,7 +522,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                                   children: [
                                     Text(h.descricao),
                                     Text(
-                                      '${_formatarData(h.data)} · ${h.pago ? 'Pago' : 'Pendente'}',
+                                      '${formatarData(h.data)} · ${h.pago ? 'Pago' : 'Pendente'}',
                                       style: const TextStyle(
                                         color: AppColors.textMuted,
                                         fontSize: 11,
@@ -552,10 +552,6 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
       ),
     );
   }
-}
-
-String _formatarData(DateTime d) {
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }
 
 class _MiniBarChart extends StatelessWidget {

@@ -59,7 +59,7 @@ Future<void> mostrarRecibo(
             const Divider(height: 24, color: AppColors.border),
             _linha('Descrição', lancamento.descricao, _corDescricao),
             _linha('Cliente', lancamento.clienteNome ?? '—', _corCliente),
-            _linha('Data', _formatarData(lancamento.data), _corData),
+            _linha('Data', formatarData(lancamento.data), _corData),
             _linha(
               'Categoria',
               lancamento.categoria.isEmpty ? '—' : lancamento.categoria,
@@ -108,10 +108,6 @@ Widget _linha(String label, String valor, Color cor) {
   );
 }
 
-String _formatarData(DateTime d) {
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}
-
 Future<void> _compartilharRecibo({
   required LancamentoDetalhado lancamento,
   required int numero,
@@ -138,7 +134,7 @@ Future<void> _compartilharRecibo({
           pw.Divider(),
           _linhaPdf('Descrição', lancamento.descricao),
           _linhaPdf('Cliente', lancamento.clienteNome ?? '—'),
-          _linhaPdf('Data', _formatarData(lancamento.data)),
+          _linhaPdf('Data', formatarData(lancamento.data)),
           _linhaPdf(
             'Categoria',
             lancamento.categoria.isEmpty ? '—' : lancamento.categoria,

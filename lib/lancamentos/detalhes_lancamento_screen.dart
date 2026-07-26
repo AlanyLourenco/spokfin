@@ -355,8 +355,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
 
     setState(() => _loading = true);
     try {
-      final dataIso =
-          '${_data.year.toString().padLeft(4, '0')}-${_data.month.toString().padLeft(2, '0')}-${_data.day.toString().padLeft(2, '0')}';
+      final dataIso = formatarDataIso(_data);
       await supabase.rpc(
         'atualizar_lancamento',
         params: {
@@ -504,7 +503,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
             Expanded(
               child: _InfoBox(
                 label: 'DATA',
-                valor: _formatarData(_lancamento.data),
+                valor: formatarData(_lancamento.data),
                 corValor: AppColors.textPrimary,
               ),
             ),
@@ -844,7 +843,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _formatarData(_data),
+                  formatarData(_data),
                   style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
@@ -1026,6 +1025,3 @@ class _PillChip extends StatelessWidget {
   }
 }
 
-String _formatarData(DateTime d) {
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}

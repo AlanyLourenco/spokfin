@@ -309,7 +309,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         return '${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year}';
       case 'personalizado':
         if (_intervaloPersonalizado == null) return 'Personalizado';
-        return '${_formatarDataCurta(_intervaloPersonalizado!.start)} - ${_formatarDataCurta(_intervaloPersonalizado!.end)}';
+        return '${formatarDataCurta(_intervaloPersonalizado!.start)} - ${formatarDataCurta(_intervaloPersonalizado!.end)}';
       default:
         return 'Todos os meses';
     }
@@ -333,10 +333,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       default:
         return true;
     }
-  }
-
-  String _formatarDataCurta(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
   }
 
   List<Object> _agruparPorMes(List<_Item> itens) {
@@ -379,7 +375,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
-          pw.Text('Gerado em ${_formatarDataExtenso(agora)}'),
+          pw.Text('Gerado em ${formatarData(agora)}'),
           if (!_temMais)
             pw.Text(
               'Obs: relatório considera apenas os lançamentos já carregados na tela.',
@@ -391,7 +387,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             data: [
               for (final i in itens)
                 [
-                  _formatarDataExtenso(i.data),
+                  formatarData(i.data),
                   i.descricao,
                   i.categoria,
                   i.statusLabel,
@@ -422,10 +418,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     return 'Relatorio Spokfin - $rotulo.pdf';
-  }
-
-  String _formatarDataExtenso(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
   }
 
   Future<void> _abrirDetalhes(_Item item) async {
@@ -693,7 +685,7 @@ class _ItemTile extends StatelessWidget {
     final cor = positivo ? AppColors.accent : AppColors.negative;
     final sinal = positivo ? '+' : '-';
     final subtitulo = [
-      '${item.data.day.toString().padLeft(2, '0')}/${item.data.month.toString().padLeft(2, '0')}/${item.data.year}',
+      formatarData(item.data),
       if (item.categoria.isNotEmpty) item.categoria,
     ].join(' · ');
 

@@ -158,7 +158,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
       case 'personalizado':
         final intervalo = _intervaloPersonalizado;
         if (intervalo == null) return 'Personalizado';
-        return '${_formatarDataCurta(intervalo.start)} - ${_formatarDataCurta(intervalo.end)}';
+        return '${formatarDataCurta(intervalo.start)} - ${formatarDataCurta(intervalo.end)}';
       default:
         return 'Todos os meses';
     }
@@ -199,10 +199,6 @@ class _BalancoScreenState extends State<BalancoScreen> {
       default:
         return 'Nenhum gasto registrado neste mês';
     }
-  }
-
-  String _formatarDataCurta(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
   }
 
   Future<void> _abrirDetalhes(_LancamentoMes item) async {
@@ -350,7 +346,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
           )
             _BarraValor(
               rotulo:
-                  '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}',
+                  formatarDataCurta(d),
               entrada: entradaPorDia[d] ?? 0,
               saida: saidaPorDia[d] ?? 0,
             ),
@@ -1025,7 +1021,7 @@ class _LancamentoMesTile extends StatelessWidget {
     final cor = positivo ? AppColors.accent : AppColors.negative;
     final sinal = positivo ? '+' : '-';
     final subtitulo =
-        '${item.data.day.toString().padLeft(2, '0')}/${item.data.month.toString().padLeft(2, '0')}/${item.data.year} · Pago · ${item.categoria}';
+        '${formatarData(item.data)} · Pago · ${item.categoria}';
 
     return InkWell(
       onTap: onTap,

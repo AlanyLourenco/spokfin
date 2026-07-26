@@ -398,7 +398,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                                         : 'Sem chave PIX')
                                     : (ultimo == null
                                           ? 'Sem lançamentos'
-                                          : 'Último: ${_formatarData(ultimo)}'),
+                                          : 'Último: ${formatarData(ultimo)}'),
                               ),
                               trailing: _ehFornecedor
                                   ? null
@@ -438,6 +438,3 @@ class _PaginaClientes {
   final bool temMais;
 }
 
-String _formatarData(DateTime d) {
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}

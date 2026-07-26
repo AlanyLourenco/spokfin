@@ -214,8 +214,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
     });
 
     try {
-      final dataIso =
-          '${_data.year.toString().padLeft(4, '0')}-${_data.month.toString().padLeft(2, '0')}-${_data.day.toString().padLeft(2, '0')}';
+      final dataIso = formatarDataIso(_data);
       final notaFiscalStatus = _querNotaFiscal ? 'pendente' : 'nao_aplicavel';
       if (_status == 'pago') {
         await supabase.from('transacoes').insert({
@@ -565,7 +564,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              _formatarData(_data),
+                              formatarData(_data),
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -625,10 +624,6 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
       ),
     );
   }
-}
-
-String _formatarData(DateTime d) {
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 }
 
 class _ChipAcao extends StatelessWidget {

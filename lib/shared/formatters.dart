@@ -34,6 +34,22 @@ String formatarValorCifrao(num valor) {
   return '${negativo ? '-' : ''}\$ $buffer.${partes[1]}';
 }
 
+/// Formata como "dd/mm/aaaa" — ex: "23/07/2026".
+String formatarData(DateTime d) {
+  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+}
+
+/// Formata como "dd/mm" (sem ano) — usado em rótulos de gráfico e período.
+String formatarDataCurta(DateTime d) {
+  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+}
+
+/// Formata como "aaaa-mm-dd" (ISO), formato esperado pelas colunas de data
+/// do Supabase em queries/RPCs.
+String formatarDataIso(DateTime d) {
+  return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+}
+
 /// Extrai até 2 iniciais (maiúsculas) das duas primeiras palavras de um nome,
 /// pra usar em avatares — ex: "João da Silva" -> "JD". Retorna "?" se vazio.
 String iniciaisDoNome(String nome) {

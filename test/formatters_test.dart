@@ -23,6 +23,27 @@ void main() {
     });
   });
 
+  group('formatarData', () {
+    test('formata como dd/mm/aaaa com zero à esquerda', () {
+      expect(formatarData(DateTime(2026, 7, 23)), '23/07/2026');
+      expect(formatarData(DateTime(2026, 1, 5)), '05/01/2026');
+    });
+  });
+
+  group('formatarDataCurta', () {
+    test('formata como dd/mm, sem ano', () {
+      expect(formatarDataCurta(DateTime(2026, 7, 23)), '23/07');
+      expect(formatarDataCurta(DateTime(2026, 1, 5)), '05/01');
+    });
+  });
+
+  group('formatarDataIso', () {
+    test('formata como aaaa-mm-dd com zero à esquerda', () {
+      expect(formatarDataIso(DateTime(2026, 7, 23)), '2026-07-23');
+      expect(formatarDataIso(DateTime(2026, 1, 5)), '2026-01-05');
+    });
+  });
+
   group('iniciaisDoNome', () {
     test('pega a primeira letra das duas primeiras palavras', () {
       expect(iniciaisDoNome('João da Silva'), 'JD');

@@ -74,8 +74,7 @@ class _FichaAssinanteScreenState extends State<FichaAssinanteScreen> {
 
     setState(() => _baixandoPagamento = true);
     try {
-      final dataIso =
-          '${dataPagamento.year.toString().padLeft(4, '0')}-${dataPagamento.month.toString().padLeft(2, '0')}-${dataPagamento.day.toString().padLeft(2, '0')}';
+      final dataIso = formatarDataIso(dataPagamento);
       await supabase.rpc(
         'registrar_pagamento_assinatura',
         params: {'p_assinatura_id': _assinaturaId, 'p_data': dataIso},
@@ -275,10 +274,7 @@ String _formatarCompetencia(String iso) {
   return '${meses[d.month - 1]} de ${d.year}';
 }
 
-String _formatarData(String iso) {
-  final d = DateTime.parse(iso);
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
-}
+String _formatarData(String iso) => formatarData(DateTime.parse(iso));
 
 class _FichaDados {
   _FichaDados({
