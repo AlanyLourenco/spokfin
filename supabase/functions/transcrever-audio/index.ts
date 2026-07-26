@@ -1,10 +1,10 @@
 // Transcreve um áudio gravado no app (base64) para texto usando o Gemini
-// (gemini-flash-latest, que entende áudio nativamente, camada gratuita do
+// (gemini-flash-lite-latest, que entende áudio nativamente, camada gratuita do
 // Google AI Studio) — usado pela tela "Falar".
 
 import { verificarLimiteIa } from "../_shared/rate_limit.ts";
 
-const MODEL = "gemini-flash-latest";
+const MODEL = "gemini-flash-lite-latest";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

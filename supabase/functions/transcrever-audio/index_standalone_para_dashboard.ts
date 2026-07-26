@@ -1,5 +1,5 @@
 // Transcreve um áudio gravado no app (base64) para texto usando o Gemini
-// (gemini-flash-latest, que entende áudio nativamente, camada gratuita do
+// (gemini-flash-lite-latest, que entende áudio nativamente, camada gratuita do
 // Google AI Studio) — usado pela tela "Falar".
 //
 // Versão autocontida (sem import de ../_shared/rate_limit.ts) — só pra colar
@@ -10,7 +10,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
-const MODEL = "gemini-flash-latest";
+const MODEL = "gemini-flash-lite-latest";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

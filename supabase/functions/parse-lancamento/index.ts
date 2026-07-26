@@ -1,11 +1,11 @@
 // Extrai um lançamento estruturado (tipo, valor, descrição, categoria, status,
 // nota fiscal, cliente, data) a partir de texto solto em português, usando o
-// Gemini (gemini-flash-latest, camada gratuita do Google AI Studio) — usado
+// Gemini (gemini-flash-lite-latest, camada gratuita do Google AI Studio) — usado
 // pelas telas "Anotar" e "Falar" do app.
 
 import { verificarLimiteIa } from "../_shared/rate_limit.ts";
 
-const MODEL = "gemini-flash-latest";
+const MODEL = "gemini-flash-lite-latest";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
