@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
+import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
@@ -609,14 +610,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                                 top: i == 0 ? 0 : 20,
                                 bottom: 8,
                               ),
-                              child: Text(
+                              child: RotuloCard(
                                 entrada,
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
+                                letterSpacing: 1,
+                                negrito: true,
                               ),
                             );
                           }

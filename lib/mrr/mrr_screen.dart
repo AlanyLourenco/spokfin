@@ -207,13 +207,7 @@ class _MrrScreenState extends State<MrrScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'ATIVOS',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11,
-                            ),
-                          ),
+                          const RotuloCard('ATIVOS'),
                           const SizedBox(height: 4),
                           Text(
                             '${_totalAtivos ?? 0}',
@@ -232,13 +226,7 @@ class _MrrScreenState extends State<MrrScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'MRR',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11,
-                            ),
-                          ),
+                          const RotuloCard('MRR'),
                           const SizedBox(height: 4),
                           Text(
                             formatarMoeda(_mrr ?? 0),

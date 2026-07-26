@@ -3,6 +3,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../theme.dart';
 import 'lancamento_detalhado.dart';
@@ -44,14 +45,7 @@ Future<void> mostrarRecibo(
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
-              'SPOKFIN',
-              style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 11,
-                letterSpacing: 1,
-              ),
-            ),
+            const RotuloCard('SPOKFIN', letterSpacing: 1),
             Text(
               'Recibo #$numero',
               style: const TextStyle(fontWeight: FontWeight.bold),

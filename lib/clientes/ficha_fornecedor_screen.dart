@@ -204,13 +204,7 @@ class _FichaFornecedorScreenState extends State<FichaFornecedorScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'CHAVE PIX',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 11,
-                      ),
-                    ),
+                    const RotuloCard('CHAVE PIX'),
                     const SizedBox(height: 6),
                     if (_chavePix == null || _chavePix!.isEmpty)
                       const Text(

@@ -27,3 +27,26 @@ class AppCard extends StatelessWidget {
     );
   }
 }
+
+/// Rótulo pequeno em caixa alta (ex: "CATEGORIA", "FATURAMENTO") usado como
+/// cabeçalho de seção dentro de um [AppCard] — mesmo estilo em todo o app.
+class RotuloCard extends StatelessWidget {
+  const RotuloCard(this.texto, {super.key, this.letterSpacing, this.negrito = false});
+
+  final String texto;
+  final double? letterSpacing;
+  final bool negrito;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      texto,
+      style: TextStyle(
+        color: AppColors.textMuted,
+        fontSize: 11,
+        letterSpacing: letterSpacing,
+        fontWeight: negrito ? FontWeight.bold : null,
+      ),
+    );
+  }
+}

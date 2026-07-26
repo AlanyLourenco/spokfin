@@ -504,14 +504,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'FATURAMENTO',
-                                  style: TextStyle(
-                                    color: AppColors.textMuted,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
+                                const RotuloCard('FATURAMENTO', letterSpacing: 0.5),
                                 const SizedBox(height: 4),
                                 Text(
                                   formatarValorCifrao(dados.receitas),
@@ -532,14 +525,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'CUSTOS',
-                                  style: TextStyle(
-                                    color: AppColors.textMuted,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
+                                const RotuloCard('CUSTOS', letterSpacing: 0.5),
                                 const SizedBox(height: 4),
                                 Text(
                                   formatarValorCifrao(dados.despesas),
@@ -564,14 +550,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
-                                'ENTRADAS VS SAÍDAS',
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 11,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
+                              const RotuloCard('ENTRADAS VS SAÍDAS', letterSpacing: 0.5),
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -593,14 +572,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'GASTOS POR CATEGORIA',
-                            style: TextStyle(
-                              color: AppColors.textMuted,
-                              fontSize: 11,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
+                          const RotuloCard('GASTOS POR CATEGORIA', letterSpacing: 0.5),
                           const SizedBox(height: 16),
                           if (dados.categoriasDespesa.isEmpty)
                             Padding(
@@ -753,14 +725,10 @@ class _BalancoScreenState extends State<BalancoScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Text(
+                    RotuloCard(
                       _tituloLancamentos(),
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
+                      letterSpacing: 1,
+                      negrito: true,
                     ),
                     const SizedBox(height: 4),
                     if (dados.lancamentos.isEmpty)

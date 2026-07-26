@@ -96,13 +96,7 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'CLIENTE',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('CLIENTE'),
                       const SizedBox(height: 8),
                       FutureBuilder<List<Map<String, dynamic>>>(
                         future: _clientesFuture,
@@ -169,13 +163,7 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'VALOR DA MENSALIDADE',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('VALOR DA MENSALIDADE'),
                       const SizedBox(height: 4),
                       Text(
                         'R\$ ${_valor.toStringAsFixed(0)}',
@@ -214,13 +202,7 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'DIA DO VENCIMENTO',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('DIA DO VENCIMENTO'),
                       const SizedBox(height: 4),
                       Text(
                         'Todo dia $_diaVencimento',

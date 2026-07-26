@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../shared/app_card.dart';
 import '../shared/campo_rotulado.dart';
 import '../shared/formatters.dart';
 import '../shared/mascaras.dart';
@@ -200,14 +201,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
+                    const RotuloCard(
                       'INFORMAÇÕES PESSOAIS',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
+                      letterSpacing: 1,
+                      negrito: true,
                     ),
                     const SizedBox(height: 12),
                     Form(
@@ -309,14 +306,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    const Text(
+                    const RotuloCard(
                       'SUPORTE & INFORMAÇÕES',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
+                      letterSpacing: 1,
+                      negrito: true,
                     ),
                     const SizedBox(height: 8),
                     _ItemPerfil(

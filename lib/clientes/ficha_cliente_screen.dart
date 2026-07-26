@@ -325,13 +325,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'STATUS',
-                          style: TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                          ),
-                        ),
+                        const RotuloCard('STATUS'),
                         Text(
                           emDebito
                               ? 'Em Débito: ${formatarMoeda(dados.debito)}'

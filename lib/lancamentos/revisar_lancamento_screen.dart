@@ -266,13 +266,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'VALOR',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('VALOR'),
                       const SizedBox(height: 4),
                       TextField(
                         controller: _valorController,
@@ -328,13 +322,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'DESCRIÇÃO',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('DESCRIÇÃO'),
                       TextField(
                         controller: _descricaoController,
                         style: const TextStyle(fontWeight: FontWeight.w600),
@@ -353,13 +341,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'TIPO',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('TIPO'),
                       const SizedBox(height: 8),
                       SegmentedButton<String>(
                         segments: const [
@@ -383,13 +365,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'STATUS',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('STATUS'),
                       const SizedBox(height: 8),
                       SegmentedButton<String>(
                         segments: const [
@@ -411,13 +387,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'CATEGORIA',
-                        style: TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      const RotuloCard('CATEGORIA'),
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -465,13 +435,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        rotuloContato,
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 11,
-                        ),
-                      ),
+                      RotuloCard(rotuloContato),
                       const SizedBox(height: 8),
                       FutureBuilder<List<Map<String, dynamic>>>(
                         future: _contatosFuture,
@@ -552,13 +516,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          rotuloData,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 11,
-                          ),
-                        ),
+                        RotuloCard(rotuloData),
                         const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

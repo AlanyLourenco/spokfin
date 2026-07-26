@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
@@ -874,14 +875,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textMuted,
-              fontSize: 11,
-              letterSpacing: 1,
-            ),
-          ),
+          RotuloCard(label, letterSpacing: 1),
           const SizedBox(height: 8),
           child,
         ],
