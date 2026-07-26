@@ -23,6 +23,22 @@ void main() {
     });
   });
 
+  group('iniciaisDoNome', () {
+    test('pega a primeira letra das duas primeiras palavras', () {
+      expect(iniciaisDoNome('João da Silva'), 'JD');
+      expect(iniciaisDoNome('Maria'), 'M');
+    });
+
+    test('retorna "?" pra nome vazio ou só espaços', () {
+      expect(iniciaisDoNome(''), '?');
+      expect(iniciaisDoNome('   '), '?');
+    });
+
+    test('ignora espaços extras nas bordas', () {
+      expect(iniciaisDoNome('  Ana Paula  '), 'AP');
+    });
+  });
+
   group('normalizarNome', () {
     test('remove espaços, acentos e diferenças de maiúscula/minúscula', () {
       expect(normalizarNome('Damião Torneiro'), 'damiaotorneiro');

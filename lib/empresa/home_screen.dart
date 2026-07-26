@@ -268,16 +268,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
     if (alterou == true) _recarregar();
   }
 
-  String get _iniciais {
-    final nome = widget.nomeExibicao.trim();
-    if (nome.isEmpty) return '?';
-    return nome
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((p) => p[0])
-        .join()
-        .toUpperCase();
-  }
+  String get _iniciais => iniciaisDoNome(widget.nomeExibicao);
 
   void _abrirPerfil() {
     Navigator.of(context).push(

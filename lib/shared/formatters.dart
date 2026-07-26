@@ -34,6 +34,19 @@ String formatarValorCifrao(num valor) {
   return '${negativo ? '-' : ''}\$ $buffer.${partes[1]}';
 }
 
+/// Extrai até 2 iniciais (maiúsculas) das duas primeiras palavras de um nome,
+/// pra usar em avatares — ex: "João da Silva" -> "JD". Retorna "?" se vazio.
+String iniciaisDoNome(String nome) {
+  final limpo = nome.trim();
+  if (limpo.isEmpty) return '?';
+  return limpo
+      .split(RegExp(r'\s+'))
+      .take(2)
+      .map((p) => p[0])
+      .join()
+      .toUpperCase();
+}
+
 const _comAcento = 'áàâãäéèêëíìîïóòôõöúùûüçÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇ';
 const _semAcento = 'aaaaaeeeeiiiiooooouuuucAAAAAEEEEIIIIOOOOOUUUUC';
 

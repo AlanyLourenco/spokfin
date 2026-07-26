@@ -275,15 +275,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
           }
           final dados = snapshot.data!;
           final emDebito = dados.debito > 0;
-          final iniciais = _nome.isEmpty
-              ? '?'
-              : _nome
-                    .trim()
-                    .split(RegExp(r'\s+'))
-                    .take(2)
-                    .map((p) => p[0])
-                    .join()
-                    .toUpperCase();
+          final iniciais = iniciaisDoNome(_nome);
 
           return Center(
             child: ConstrainedBox(

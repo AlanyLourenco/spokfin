@@ -322,15 +322,7 @@ class _AssinaturaTile extends StatelessWidget {
         ? AppColors.accent
         : (status == 'atrasado' ? AppColors.negative : AppColors.textMuted);
 
-    final iniciais = nome.isEmpty
-        ? '?'
-        : nome
-              .trim()
-              .split(RegExp(r'\s+'))
-              .take(2)
-              .map((p) => p[0])
-              .join()
-              .toUpperCase();
+    final iniciais = iniciaisDoNome(nome);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),

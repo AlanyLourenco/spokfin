@@ -375,15 +375,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                           final nome = c['nome'] as String? ?? '';
                           final ultimo = c['ultimo'] as DateTime?;
                           final debito = c['debito'] as double;
-                          final iniciais = nome.isEmpty
-                              ? '?'
-                              : nome
-                                    .trim()
-                                    .split(RegExp(r'\s+'))
-                                    .take(2)
-                                    .map((p) => p[0])
-                                    .join()
-                                    .toUpperCase();
+                          final iniciais = iniciaisDoNome(nome);
                           return AppCard(
                             child: ListTile(
                               contentPadding: EdgeInsets.zero,

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/formatters.dart';
 import '../theme.dart';
 import 'cliente_form_screen.dart';
 
@@ -140,15 +141,7 @@ class _FichaFornecedorScreenState extends State<FichaFornecedorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final iniciais = _nome.isEmpty
-        ? '?'
-        : _nome
-              .trim()
-              .split(RegExp(r'\s+'))
-              .take(2)
-              .map((p) => p[0])
-              .join()
-              .toUpperCase();
+    final iniciais = iniciaisDoNome(_nome);
 
     return Scaffold(
       appBar: AppBar(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 import '../shared/campo_rotulado.dart';
+import '../shared/formatters.dart';
 import '../shared/mascaras.dart';
 import '../theme.dart';
 import 'termos_screen.dart';
@@ -29,16 +30,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   String get _email => supabase.auth.currentUser?.email ?? '';
 
-  String get _iniciais {
-    final nome = _razaoSocialController.text.trim();
-    if (nome.isEmpty) return '?';
-    return nome
-        .split(RegExp(r'\s+'))
-        .take(2)
-        .map((p) => p[0])
-        .join()
-        .toUpperCase();
-  }
+  String get _iniciais => iniciaisDoNome(_razaoSocialController.text);
 
   @override
   void initState() {
