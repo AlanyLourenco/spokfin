@@ -5,6 +5,6 @@
 - [x] `flutter analyze` limpo
 - [x] `flutter test` passando (nenhum teste Dart quebrou, contrato Flutter intacto)
 - [x] Commit + push
-- [ ] Avisar o usuário: gerar `GEMINI_API_KEY` em aistudio.google.com, configurar como secret no Supabase, reimplantar as duas Edge Functions
-- [ ] Testado manualmente no navegador (Anotar com o mesmo texto que falhou antes, Falar com áudio)
+- [x] Avisar o usuário: gerar `GEMINI_API_KEY` em aistudio.google.com, configurar como secret no Supabase, reimplantar as duas Edge Functions
+- [x] Testado manualmente no navegador — Anotar confirmado funcionando (modelo `gemini-flash-lite-latest`, após alguns ajustes de modelo pelo caminho); Falar ainda não testado explicitamente
 - [x] Atualizar índice em `specs/README.md`

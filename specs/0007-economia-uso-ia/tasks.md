@@ -8,6 +8,6 @@
 - [x] `flutter analyze` limpo
 - [x] `flutter test` passando
 - [x] Commit + push
-- [ ] Avisar o usuário: reimplantar as duas Edge Functions (código mudou)
-- [ ] Testado manualmente no navegador (texto curto demais, texto normal, áudio curto demais)
-- [ ] Atualizar índice em `specs/README.md`
+- [x] Avisar o usuário: reimplantar as duas Edge Functions (código mudou)
+- [x] Testado manualmente no navegador — texto normal confirmado funcionando; texto curto demais/áudio curto demais ainda não testados explicitamente
+- [x] Atualizar índice em `specs/README.md`
