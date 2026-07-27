@@ -210,7 +210,7 @@ class _FalarScreenState extends State<FalarScreen> {
                   const Text(
                     'ESCUTANDO...',
                     style: TextStyle(
-                      color: AppColors.accent,
+                      color: AppColors.primary,
                       fontSize: 12,
                       letterSpacing: 1.2,
                     ),

@@ -262,7 +262,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
             ListTile(
               title: const Text('Todos os meses'),
               trailing: _periodo == 'todos'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () => selecionar('todos'),
             ),
@@ -271,7 +271,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 'Este Mês (${_nomesMesesCompletos[agora.month - 1]} ${agora.year})',
               ),
               trailing: _periodo == 'este_mes'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () => selecionar('este_mes'),
             ),
@@ -280,14 +280,14 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 'Mês Passado (${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year})',
               ),
               trailing: _periodo == 'mes_passado'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () => selecionar('mes_passado'),
             ),
             ListTile(
               title: const Text('Período personalizado...'),
               trailing: _periodo == 'personalizado'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () {
                 Navigator.of(context).pop();
@@ -561,7 +561,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           ? null
                           : () => _exportarRelatorio(itens),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.accent,
+                        foregroundColor: AppColors.primary,
                       ),
                       icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
                       label: const Text('Exportar período'),
@@ -657,10 +657,10 @@ class _FiltroChip extends StatelessWidget {
       label: Text(label),
       selected: selecionado,
       onSelected: (_) => onTap(),
-      selectedColor: AppColors.accent,
+      selectedColor: AppColors.primary,
       backgroundColor: AppColors.surfaceAlt,
       labelStyle: TextStyle(
-        color: selecionado ? AppColors.background : AppColors.textMuted,
+        color: selecionado ? AppColors.textPrimary : AppColors.textMuted,
         fontWeight: FontWeight.w600,
       ),
       side: selecionado
@@ -738,13 +738,13 @@ class _ItemTile extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.transparent,
-                            border: Border.all(color: AppColors.accent),
+                            border: Border.all(color: AppColors.primary),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Text(
                             'NFC-e agendada',
                             style: TextStyle(
-                              color: AppColors.accent,
+                              color: AppColors.primary,
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
                             ),

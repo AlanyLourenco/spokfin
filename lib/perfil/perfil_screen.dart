@@ -176,7 +176,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                             child: Text(
                               _iniciais,
                               style: const TextStyle(
-                                color: AppColors.accent,
+                                color: AppColors.primary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
                               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../shared/campo_rotulado.dart';
 import 'ia_service.dart';
 import 'revisar_lancamento_screen.dart';
 
@@ -111,15 +112,16 @@ class _AnotarScreenState extends State<AnotarScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  maxLines: 4,
-                  maxLength: _tamanhoMaximoTexto,
-                  decoration: const InputDecoration(
-                    labelText: 'Digite o que aconteceu...',
-                    hintText: 'ex: recebi 300 do João',
-                    border: OutlineInputBorder(),
+                CampoRotulado(
+                  rotulo: 'Digite o que aconteceu',
+                  child: TextField(
+                    controller: _controller,
+                    autofocus: true,
+                    maxLines: 4,
+                    maxLength: _tamanhoMaximoTexto,
+                    decoration: const InputDecoration(
+                      hintText: 'ex: recebi 300 do João',
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),

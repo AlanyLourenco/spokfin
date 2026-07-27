@@ -5,6 +5,7 @@ import '../lancamentos/lancamento_detalhado.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
+import '../shared/motion.dart';
 import '../theme.dart';
 import 'adicionar_encarregado_sheet.dart';
 import 'cliente_form_screen.dart';
@@ -268,28 +269,50 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: const KeyedSubtree(
+                key: ValueKey('carregando'),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: KeyedSubtree(
+                key: const ValueKey('erro'),
+                child: Center(child: Text('Erro: ${snapshot.error}')),
+              ),
+            );
           }
           final dados = snapshot.data!;
           final emDebito = dados.debito > 0;
           final iniciais = iniciaisDoNome(_nome);
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
+          return AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.entrada,
+            switchOutCurve: AppMotion.saida,
+            child: KeyedSubtree(
+              key: const ValueKey('conteudo'),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
                   Row(
                     children: [
                       CircleAvatar(
                         backgroundColor: AppColors.surfaceAlt,
                         child: Text(
                           iniciais,
-                          style: const TextStyle(color: AppColors.accent),
+                          style: const TextStyle(color: AppColors.primary),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -423,7 +446,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                       TextButton(
                         onPressed: _adicionarEncarregado,
                         style: TextButton.styleFrom(
-                          foregroundColor: AppColors.accent,
+                          foregroundColor: AppColors.primary,
                         ),
                         child: const Text('+ Adicionar Encarregado'),
                       ),
@@ -539,6 +562,8 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                         ),
                       ),
                 ],
+                  ),
+                ),
               ),
             ),
           );
@@ -570,7 +595,7 @@ class _MiniBarChart extends StatelessWidget {
                 child: Container(
                   height: 6 + (v / maximo) * 34,
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),

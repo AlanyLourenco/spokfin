@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../main.dart';
+import '../shared/campo_rotulado.dart';
 
 class NovaSenhaScreen extends StatefulWidget {
   const NovaSenhaScreen({super.key, required this.onConcluido});
@@ -63,25 +64,29 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _senhaController,
-                    obscureText: true,
-                    autofocus: true,
-                    decoration: const InputDecoration(labelText: 'Nova senha'),
-                    validator: (v) => (v == null || v.length < 6)
-                        ? 'Mínimo de 6 caracteres'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _confirmarController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Confirmar nova senha',
+                  CampoRotulado(
+                    rotulo: 'Nova senha',
+                    child: TextFormField(
+                      controller: _senhaController,
+                      obscureText: true,
+                      autofocus: true,
+                      decoration: const InputDecoration(hintText: '••••••'),
+                      validator: (v) => (v == null || v.length < 6)
+                          ? 'Mínimo de 6 caracteres'
+                          : null,
                     ),
-                    validator: (v) => v != _senhaController.text
-                        ? 'As senhas não coincidem'
-                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  CampoRotulado(
+                    rotulo: 'Confirmar nova senha',
+                    child: TextFormField(
+                      controller: _confirmarController,
+                      obscureText: true,
+                      decoration: const InputDecoration(hintText: '••••••'),
+                      validator: (v) => v != _senhaController.text
+                          ? 'As senhas não coincidem'
+                          : null,
+                    ),
                   ),
                   if (_error != null) ...[
                     const SizedBox(height: 12),

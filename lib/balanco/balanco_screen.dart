@@ -8,6 +8,7 @@ import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/motion.dart';
 import '../theme.dart';
 
 const _nomesMesesCompletos = [
@@ -90,7 +91,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
             ListTile(
               title: const Text('Todos os meses'),
               trailing: _periodo == 'todos'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () => selecionar('todos'),
             ),
@@ -99,7 +100,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                 'Este Mês (${_nomesMesesCompletos[agora.month - 1]} ${agora.year})',
               ),
               trailing: _periodo == 'este_mes'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () => selecionar('este_mes'),
             ),
@@ -108,14 +109,14 @@ class _BalancoScreenState extends State<BalancoScreen> {
                 'Mês Passado (${_nomesMesesCompletos[mesPassado.month - 1]} ${mesPassado.year})',
               ),
               trailing: _periodo == 'mes_passado'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () => selecionar('mes_passado'),
             ),
             ListTile(
               title: const Text('Período personalizado...'),
               trailing: _periodo == 'personalizado'
-                  ? const Icon(Icons.check, color: AppColors.accent)
+                  ? const Icon(Icons.check, color: AppColors.primary)
                   : null,
               onTap: () {
                 Navigator.of(context).pop();
@@ -410,10 +411,26 @@ class _BalancoScreenState extends State<BalancoScreen> {
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState != ConnectionState.done) {
-                return const Center(child: CircularProgressIndicator());
+                return AnimatedSwitcher(
+                  duration: AppMotion.base,
+                  switchInCurve: AppMotion.entrada,
+                  switchOutCurve: AppMotion.saida,
+                  child: const KeyedSubtree(
+                    key: ValueKey('carregando'),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
               }
               if (snapshot.hasError) {
-                return Center(child: Text('Erro: ${snapshot.error}'));
+                return AnimatedSwitcher(
+                  duration: AppMotion.base,
+                  switchInCurve: AppMotion.entrada,
+                  switchOutCurve: AppMotion.saida,
+                  child: KeyedSubtree(
+                    key: const ValueKey('erro'),
+                    child: Center(child: Text('Erro: ${snapshot.error}')),
+                  ),
+                );
               }
               final dados = snapshot.data!;
               final liquido = dados.receitas - dados.despesas;
@@ -425,11 +442,19 @@ class _BalancoScreenState extends State<BalancoScreen> {
                   ? 1.0
                   : dados.categoriasDespesa.first.valor;
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
+              return AnimatedSwitcher(
+                duration: AppMotion.base,
+                switchInCurve: AppMotion.entrada,
+                switchOutCurve: AppMotion.saida,
+                child: KeyedSubtree(
+                  key: ValueKey(
+                    'dados-$_periodo-${_intervaloPersonalizado?.start}-${_intervaloPersonalizado?.end}',
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                     Center(
                       child: InkWell(
                         onTap: _abrirSeletorPeriodo,
@@ -747,7 +772,9 @@ class _BalancoScreenState extends State<BalancoScreen> {
                           item: item,
                           onTap: () => _abrirDetalhes(item),
                         ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               );
             },

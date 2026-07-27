@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../main.dart';
 import '../shared/campo_rotulado.dart';
 import '../shared/mascaras.dart';
+import '../shared/tilt_depth.dart';
 import '../theme.dart';
 
 const _tiposChavePix = {
@@ -210,7 +211,7 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
                                 entrada.value,
                                 style: TextStyle(
                                   color: _tipoChavePix == entrada.key
-                                      ? AppColors.accent
+                                      ? AppColors.primary
                                       : AppColors.textPrimary,
                                   fontWeight: _tipoChavePix == entrada.key
                                       ? FontWeight.bold
@@ -233,19 +234,22 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _loading ? null : _salvar,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(
-                            _editando
-                                ? 'Salvar Alterações'
-                                : 'Salvar $rotulo',
-                          ),
+                  TiltDepth(
+                    maxAngle: 0.04,
+                    child: FilledButton(
+                      onPressed: _loading ? null : _salvar,
+                      child: _loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              _editando
+                                  ? 'Salvar Alterações'
+                                  : 'Salvar $rotulo',
+                            ),
+                    ),
                   ),
                 ],
               ),

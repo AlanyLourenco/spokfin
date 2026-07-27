@@ -4,6 +4,7 @@ import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/motion.dart';
 import '../theme.dart';
 
 class FichaAssinanteScreen extends StatefulWidget {
@@ -104,18 +105,40 @@ class _FichaAssinanteScreenState extends State<FichaAssinanteScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: const KeyedSubtree(
+                key: ValueKey('carregando'),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: KeyedSubtree(
+                key: const ValueKey('erro'),
+                child: Center(child: Text('Erro: ${snapshot.error}')),
+              ),
+            );
           }
           final dados = snapshot.data!;
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
+          return AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.entrada,
+            switchOutCurve: AppMotion.saida,
+            child: KeyedSubtree(
+              key: const ValueKey('conteudo'),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
                   AppCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,6 +269,8 @@ class _FichaAssinanteScreenState extends State<FichaAssinanteScreen> {
                         ),
                       ),
                 ],
+                  ),
+                ),
               ),
             ),
           );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../clientes/cliente_form_screen.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
+import '../shared/tilt_depth.dart';
 import '../theme.dart';
 
 class NovaAssinaturaScreen extends StatefulWidget {
@@ -142,7 +143,7 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                                     c['nome'] as String,
                                     style: TextStyle(
                                       color: _clienteId == c['id']
-                                          ? AppColors.accent
+                                          ? AppColors.primary
                                           : AppColors.textPrimary,
                                       fontWeight: _clienteId == c['id']
                                           ? FontWeight.bold
@@ -213,11 +214,11 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                       ),
                       SliderTheme(
                         data: SliderThemeData(
-                          activeTrackColor: AppColors.accent,
-                          thumbColor: AppColors.accent,
+                          activeTrackColor: AppColors.primary,
+                          thumbColor: AppColors.primary,
                           inactiveTrackColor: AppColors.surfaceAlt,
-                          overlayColor: AppColors.accent.withValues(alpha: 0.2),
-                          valueIndicatorColor: AppColors.accent,
+                          overlayColor: AppColors.primary.withValues(alpha: 0.2),
+                          valueIndicatorColor: AppColors.primary,
                         ),
                         child: Slider(
                           value: _diaVencimento.toDouble(),
@@ -242,15 +243,18 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading ? null : _salvar,
-                  child: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Salvar Assinatura'),
+                TiltDepth(
+                  maxAngle: 0.04,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _salvar,
+                    child: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Salvar Assinatura'),
+                  ),
                 ),
                 const SizedBox(height: 12),
               ],

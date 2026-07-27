@@ -6,6 +6,7 @@ import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/motion.dart';
 import '../theme.dart';
 import 'categorias.dart';
 import 'lancamento_detalhado.dart';
@@ -25,7 +26,7 @@ Future<bool?> mostrarDetalhesLancamento(
     barrierLabel: 'Detalhes do Lançamento',
     barrierColor: Colors.black.withValues(alpha: 0.6),
     barrierDismissible: true,
-    transitionDuration: const Duration(milliseconds: 260),
+    transitionDuration: AppMotion.lento,
     pageBuilder: (context, animation, secondaryAnimation) {
       return Align(
         alignment: Alignment.bottomCenter,
@@ -36,7 +37,11 @@ Future<bool?> mostrarDetalhesLancamento(
       );
     },
     transitionBuilder: (context, animation, secondaryAnimation, child) {
-      final curva = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      final curva = CurvedAnimation(
+        parent: animation,
+        curve: AppMotion.entrada,
+        reverseCurve: AppMotion.saida,
+      );
       return BackdropFilter(
         filter: ImageFilter.blur(
           sigmaX: 6 * animation.value,
@@ -446,7 +451,9 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.all(20),
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
+                      duration: AppMotion.base,
+                      switchInCurve: AppMotion.entrada,
+                      switchOutCurve: AppMotion.saida,
                       child: _editando ? _buildEditBody() : _buildViewBody(),
                     ),
                   ),
@@ -541,7 +548,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                   Icons.receipt_long,
                   size: 18,
                   color: _notaFiscalPendente
-                      ? AppColors.accent
+                      ? AppColors.primary
                       : AppColors.textMuted,
                 ),
                 const SizedBox(width: 8),
@@ -595,8 +602,8 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           child: FilledButton(
             onPressed: (_pago && _entrada && !_loading) ? _gerarRecibo : null,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: AppColors.background,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textPrimary,
               disabledBackgroundColor: AppColors.surfaceAlt,
               disabledForegroundColor: AppColors.textMuted,
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -730,13 +737,9 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                       label: Text(c),
                       selected: _categoria == c,
                       onSelected: (_) => setState(() => _categoria = c),
-                      selectedColor: AppColors.accent,
+                      selectedColor: AppColors.primary,
                       backgroundColor: AppColors.surfaceAlt,
-                      labelStyle: TextStyle(
-                        color: _categoria == c
-                            ? AppColors.background
-                            : AppColors.textPrimary,
-                      ),
+                      labelStyle: const TextStyle(color: AppColors.textPrimary),
                       side: BorderSide.none,
                     ),
                 ],
@@ -806,7 +809,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                       semVinculo,
                       style: TextStyle(
                         color: _clienteId == null
-                            ? AppColors.accent
+                            ? AppColors.primary
                             : AppColors.textPrimary,
                         fontWeight: _clienteId == null
                             ? FontWeight.bold
@@ -821,7 +824,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                         c['nome'] as String,
                         style: TextStyle(
                           color: _clienteId == c['id']
-                              ? AppColors.accent
+                              ? AppColors.primary
                               : AppColors.textPrimary,
                           fontWeight: _clienteId == c['id']
                               ? FontWeight.bold
@@ -906,8 +909,8 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           child: FilledButton(
             onPressed: _loading ? null : _salvarEdicao,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.accent,
-              foregroundColor: AppColors.background,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textPrimary,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -919,7 +922,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.background,
+                      color: AppColors.textPrimary,
                     ),
                   )
                 : const Text('Salvar', style: TextStyle(fontWeight: FontWeight.bold)),

@@ -4,6 +4,7 @@ import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/motion.dart';
 import '../theme.dart';
 import 'ficha_assinante_screen.dart';
 import 'nova_assinatura_screen.dart';
@@ -173,8 +174,8 @@ class _MrrScreenState extends State<MrrScreen> {
               icon: const Icon(Icons.add, size: 16),
               label: const Text('Nova'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: Colors.black,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 8,
@@ -191,13 +192,35 @@ class _MrrScreenState extends State<MrrScreen> {
       body: Builder(
         builder: (context) {
           if (_erro != null) {
-            return Center(child: Text('Erro: $_erro'));
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: KeyedSubtree(
+                key: const ValueKey('erro'),
+                child: Center(child: Text('Erro: $_erro')),
+              ),
+            );
           }
           if (_assinaturas == null) {
-            return const Center(child: CircularProgressIndicator());
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: const KeyedSubtree(
+                key: ValueKey('carregando'),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
           }
           final assinaturas = _assinaturas!;
-          return ListView(
+          return AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.entrada,
+            switchOutCurve: AppMotion.saida,
+            child: KeyedSubtree(
+              key: const ValueKey('conteudo'),
+              child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
             children: [
               Row(
@@ -273,7 +296,9 @@ class _MrrScreenState extends State<MrrScreen> {
                           ),
                   ),
               ],
-            ],
+              ],
+              ),
+            ),
           );
         },
       ),
@@ -322,7 +347,7 @@ class _AssinaturaTile extends StatelessWidget {
             backgroundColor: AppColors.surfaceAlt,
             child: Text(
               iniciais,
-              style: const TextStyle(color: AppColors.accent),
+              style: const TextStyle(color: AppColors.primary),
             ),
           ),
           title: Text(nome),

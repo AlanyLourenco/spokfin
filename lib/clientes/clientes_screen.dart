@@ -6,6 +6,7 @@ import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/motion.dart';
 import '../theme.dart';
 import 'cliente_form_screen.dart';
 import 'ficha_cliente_screen.dart';
@@ -270,8 +271,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
               icon: const Icon(Icons.person_add_alt, size: 16),
               label: Text(_ehFornecedor ? 'Novo Fornecedor' : 'Novo'),
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.background,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textPrimary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
                   vertical: 8,
@@ -288,15 +289,37 @@ class _ClientesScreenState extends State<ClientesScreen> {
       body: Builder(
         builder: (context) {
           if (_erro != null) {
-            return Center(child: Text('Erro: $_erro'));
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: KeyedSubtree(
+                key: const ValueKey('erro'),
+                child: Center(child: Text('Erro: $_erro')),
+              ),
+            );
           }
           if (_clientes == null) {
-            return const Center(child: CircularProgressIndicator());
+            return AnimatedSwitcher(
+              duration: AppMotion.base,
+              switchInCurve: AppMotion.entrada,
+              switchOutCurve: AppMotion.saida,
+              child: const KeyedSubtree(
+                key: ValueKey('carregando'),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            );
           }
           final buscando = _buscaController.text.trim().isNotEmpty;
           final clientes = buscando ? _resultadoBusca : _clientes;
 
-          return Column(
+          return AnimatedSwitcher(
+            duration: AppMotion.base,
+            switchInCurve: AppMotion.entrada,
+            switchOutCurve: AppMotion.saida,
+            child: KeyedSubtree(
+              key: ValueKey('conteudo-$_aba'),
+              child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -384,7 +407,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                                 child: Text(
                                   iniciais,
                                   style: const TextStyle(
-                                    color: AppColors.accent,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -424,6 +447,8 @@ class _ClientesScreenState extends State<ClientesScreen> {
                       ),
               ),
             ],
+              ),
+            ),
           );
         },
       ),

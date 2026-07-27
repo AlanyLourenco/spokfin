@@ -308,8 +308,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         const Text(
                           'spokfin',
                           style: TextStyle(
+                            fontFamily: 'Calistoga',
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w400,
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -443,7 +444,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                           TextButton(
                             onPressed: widget.onVerHistorico,
                             style: TextButton.styleFrom(
-                              foregroundColor: AppColors.accent,
+                              foregroundColor: AppColors.primary,
                               padding: EdgeInsets.zero,
                               minimumSize: const Size(0, 0),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -495,7 +496,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.accent,
+                            color: AppColors.primary,
                             borderRadius: BorderRadius.circular(22),
                           ),
                           child: InkWell(
@@ -507,13 +508,13 @@ class _HomeTabContentState extends State<HomeTabContent> {
                                 Icon(
                                   Icons.mic,
                                   size: 18,
-                                  color: AppColors.background,
+                                  color: AppColors.textPrimary,
                                 ),
                                 SizedBox(width: 6),
                                 Text(
                                   'Falar',
                                   style: TextStyle(
-                                    color: AppColors.background,
+                                    color: AppColors.textPrimary,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -690,7 +691,7 @@ class _LancamentoTile extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: Colors.transparent,
-                            border: Border.all(color: AppColors.accent),
+                            border: Border.all(color: AppColors.primary),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Row(
@@ -699,13 +700,13 @@ class _LancamentoTile extends StatelessWidget {
                               Icon(
                                 Icons.receipt_long,
                                 size: 10,
-                                color: AppColors.accent,
+                                color: AppColors.primary,
                               ),
                               SizedBox(width: 3),
                               Text(
                                 'NFC-e agendada',
                                 style: TextStyle(
-                                  color: AppColors.accent,
+                                  color: AppColors.primary,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
                                 ),

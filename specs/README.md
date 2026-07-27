@@ -26,6 +26,8 @@ Convenção para desenvolver features neste projeto: antes de escrever código, 
 | [0005](0005-conformidade-lgpd/) | Conformidade Legal (LGPD): Termos, consentimento, exclusão de conta | Implementado — falta rodar migration 0013 + implantar Edge Function `excluir-conta` + testar |
 | [0006](0006-migrar-ia-gemini/) | Migrar IA de OpenAI para Google Gemini | Implementado e testado (Anotar) — modelo `gemini-flash-lite-latest` |
 | [0007](0007-economia-uso-ia/) | Medidas de Economia no Uso de IA | Implementado e testado (texto normal) |
+| [0008](0008-unificacao-visual-motion/) | Unificação Visual e Motion (Impeccable + Emil Kowalski) | Implementado e testado — todos os 6 lotes concluídos |
+| [0009](0009-paleta-azul-verde-tipografia-inter/) | Nova Paleta (Azul+Verde) e Tipografia Inter (UI/UX Pro Max) | Implementado e testado — falta usuário validar pessoalmente |
 
 ## Catálogo de histórias de usuário
 

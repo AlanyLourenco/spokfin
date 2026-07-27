@@ -134,7 +134,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                           text:
                                               'Termos de Uso e a Política de Privacidade',
                                           style: const TextStyle(
-                                            color: AppColors.accent,
+                                            color: AppColors.primary,
                                             fontWeight: FontWeight.w600,
                                           ),
                                           recognizer:

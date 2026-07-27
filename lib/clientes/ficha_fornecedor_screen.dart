@@ -172,7 +172,7 @@ class _FichaFornecedorScreenState extends State<FichaFornecedorScreen> {
                     backgroundColor: AppColors.surfaceAlt,
                     child: Text(
                       iniciais,
-                      style: const TextStyle(color: AppColors.accent),
+                      style: const TextStyle(color: AppColors.primary),
                     ),
                   ),
                   const SizedBox(width: 12),

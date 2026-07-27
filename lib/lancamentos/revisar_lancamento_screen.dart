@@ -4,6 +4,7 @@ import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/tilt_depth.dart';
 import '../theme.dart';
 import 'categorias.dart';
 import 'ia_service.dart';
@@ -398,11 +399,11 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                               label: Text(c),
                               selected: _categoria == c,
                               onSelected: (_) => setState(() => _categoria = c),
-                              selectedColor: AppColors.accent,
+                              selectedColor: AppColors.primary,
                               backgroundColor: AppColors.surfaceAlt,
                               labelStyle: TextStyle(
                                 color: _categoria == c
-                                    ? AppColors.background
+                                    ? AppColors.textPrimary
                                     : AppColors.textMuted,
                               ),
                               side: BorderSide.none,
@@ -452,6 +453,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                             ),
                             dropdownColor: AppColors.surfaceAlt,
                             borderRadius: BorderRadius.circular(12),
+                            style: const TextStyle(color: AppColors.textPrimary),
                             hint: Text(
                               _ehGasto
                                   ? 'Sem fornecedor vinculado'
@@ -466,7 +468,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                                       : 'Sem cliente vinculado',
                                   style: TextStyle(
                                     color: _clienteId == null
-                                        ? AppColors.accent
+                                        ? AppColors.primary
                                         : AppColors.textPrimary,
                                     fontWeight: _clienteId == null
                                         ? FontWeight.bold
@@ -481,7 +483,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                                     c['nome'] as String,
                                     style: TextStyle(
                                       color: _clienteId == c['id']
-                                          ? AppColors.accent
+                                          ? AppColors.primary
                                           : AppColors.textPrimary,
                                       fontWeight: _clienteId == c['id']
                                           ? FontWeight.bold
@@ -560,19 +562,22 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                   ),
                 ],
                 const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: _loading ? null : _salvar,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: AppColors.background,
+                TiltDepth(
+                  maxAngle: 0.04,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _salvar,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textPrimary,
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Salvar Lançamento'),
                   ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Salvar Lançamento'),
                 ),
                 const SizedBox(height: 12),
               ],

@@ -30,7 +30,7 @@ Future<void> mostrarRecibo(
           children: [
             Row(
               children: [
-                const Icon(Icons.receipt_long, color: AppColors.accent),
+                const Icon(Icons.receipt_long, color: AppColors.primary),
                 const SizedBox(width: 8),
                 const Expanded(
                   child: Text(

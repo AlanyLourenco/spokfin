@@ -70,7 +70,7 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: NavigationBarTheme(
         data: NavigationBarThemeData(
           backgroundColor: AppColors.background,
-          indicatorColor: AppColors.accent,
+          indicatorColor: AppColors.primary,
           labelTextStyle: WidgetStateProperty.resolveWith(
             (states) => TextStyle(
               fontSize: 11,
@@ -82,7 +82,7 @@ class _MainShellState extends State<MainShell> {
           iconTheme: WidgetStateProperty.resolveWith(
             (states) => IconThemeData(
               color: states.contains(WidgetState.selected)
-                  ? AppColors.background
+                  ? AppColors.textPrimary
                   : AppColors.textMuted,
             ),
           ),

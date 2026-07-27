@@ -24,7 +24,7 @@ class Waveform extends StatelessWidget {
               width: 3,
               height: 4 + nivel * 48,
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
