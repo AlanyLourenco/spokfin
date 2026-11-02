@@ -98,7 +98,7 @@ Antes de investigar o código, **verifique se o projeto Supabase não está paus
 
 ## CI / Repositório
 
-- GitHub: `https://github.com/AlanyLourenco/spokfin` (privado).
+- GitHub: `https://github.com/AlanyLourenco/spokfin` (público, usado no portfólio).
 - `.github/workflows/ci.yml` roda `flutter analyze` + `flutter test` a cada push/PR na `main`. Ele copia `.env.example` → `.env` antes, já que analyze/test nunca chamam `Supabase.initialize()` mas o asset está declarado no `pubspec.yaml`.
 - Sentry: propositalmente não configurado ainda (usuário não tem conta) — não adicionar sem ser pedido.
 
