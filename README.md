@@ -37,7 +37,7 @@ O spokfinRM transcreve (quando é áudio), extrai o lançamento estruturado inte
 
 Esse é o eixo central do projeto — construído como estudo de caso de processo, não só de feature:
 
-- **Spec-Driven Development real**: toda mudança nasce como `requirements.md` → `design.md` → `tasks.md` em [`specs/`](specs/) antes de qualquer código — decisões técnicas, trade-offs considerados e alternativas descartadas ficam registrados, não só o resultado final. Já são [7 specs completas](specs/README.md) documentando features de complexidade crescente.
+- **Spec-Driven Development real**: toda mudança nasce como `requirements.md` → `design.md` → `tasks.md` em [`specs/`](specs/) antes de qualquer código — decisões técnicas, trade-offs considerados e alternativas descartadas ficam registrados, não só o resultado final. Já são [9 specs completas](specs/README.md) documentando features de complexidade crescente.
 - **Segurança por padrão**: Row Level Security em toda tabela via funções `security definer` (`is_member`/`is_owner`) — nenhuma query do cliente pode vazar dado de outra empresa, mesmo por engano. Segredos de API (Gemini) nunca chegam ao Flutter — vivem só em Edge Functions, que derivam a identidade do JWT verificado em vez de confiar em IDs enviados pelo cliente.
 - **Design defensivo de custo de IA**: limite de caracteres/duração antes de sequer chamar a IA, detecção de "limite de uso atingido" pra não duplicar uma chamada já rejeitada, teto explícito de tokens de saída — a integração de IA foi projetada assumindo camada gratuita e uso real, não só o caminho feliz.
 - **Testes automatizados** (`test/`) cobrindo a lógica pura testável: formatação monetária, máscaras e validação de CPF/CNPJ com dígito verificador de verdade, normalização de nomes (acentos/espaçamento) pra casar dados extraídos por IA com cadastros existentes, encoding WAV, parsing da extração de IA.
@@ -56,4 +56,15 @@ cp .env.example .env   # preencher SUPABASE_URL e SUPABASE_ANON_KEY
 flutter run -d web-server --web-port=5000 --web-hostname=localhost
 ```
 
-As migrations em [`supabase/migrations/`](supabase/migrations/) precisam ser aplicadas, em ordem, no SQL Editor do projeto Supabase. As Edge Functions em [`supabase/functions/`](supabase/functions/) precisam de uma secret `GEMINI_API_KEY` (gratuita via [Google AI Studio](https://aistudio.google.com/apikey)).
+As migrations em [`supabase/migrations/`](supabase/migrations/) precisam ser aplicadas, em ordem, no SQL Editor do projeto Supabase — o [registro do que já foi aplicado e o mapa do schema](supabase/migrations/README.md) ficam ali. As Edge Functions em [`supabase/functions/`](supabase/functions/) precisam de uma secret `GEMINI_API_KEY` (gratuita via [Google AI Studio](https://aistudio.google.com/apikey)); [como implantar](supabase/functions/README.md).
+
+## Onde está cada coisa
+
+| Documento | Assunto |
+|---|---|
+| [`CLAUDE.md`](CLAUDE.md) | Arquitetura, convenções de código e fluxo de desenvolvimento |
+| [`PRODUCT.md`](PRODUCT.md) | Usuário-alvo, propósito e princípios de produto |
+| [`DESIGN.md`](DESIGN.md) | Identidade visual: tokens, tipografia, motion |
+| [`specs/`](specs/) | Specs por feature, histórias de usuário e roadmap |
+| [`supabase/migrations/README.md`](supabase/migrations/README.md) | Estado do banco e mapa de tabelas/views/RPCs |
+| [`supabase/functions/README.md`](supabase/functions/README.md) | Edge Functions: o que fazem, secrets, deploy |

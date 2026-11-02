@@ -27,7 +27,7 @@ Catálogo completo com critérios de aceite em [historias-de-usuario.md](histori
 | Avisos in-app (vencimento + assinatura atrasada) | ✅ Completo |
 | Navegação (shell, ações rápidas) | ✅ Completo |
 
-Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` já foram rodadas no Supabase — nenhuma pendência operacional em aberto no momento.
+✅ **As 13 migrations estão aplicadas** (verificado direto no banco em 01–03/09/2026). Houve uma pendência real: a `0011_registrar_pagamento_categoria.sql` nunca tinha sido aplicada, e por isso trocar um lançamento de pago para pendente (ou vice-versa) **apagava a categoria dele**. Corrigida em 03/09/2026 — histórico em [`../supabase/migrations/README.md`](../supabase/migrations/README.md).
 
 ---
 
@@ -48,13 +48,13 @@ Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` já foram roda
 |---|---|
 | Segurança de dados | RLS em todas as tabelas via `is_member`/`is_owner` (security definer functions); cada empresa só vê os próprios dados |
 | Autenticação | Supabase Auth (e-mail/senha), recuperação de senha completa dentro do app |
-| Segredos | `OPENAI_API_KEY` só existe no servidor (Edge Functions); nunca exposta ao cliente Flutter |
+| Segredos | `GEMINI_API_KEY` só existe no servidor (Edge Functions); nunca exposta ao cliente Flutter |
 | Persistência de PDF | Recibo e relatório de período são gerados 100% client-side e compartilhados via share sheet nativo — nada fica armazenado no Supabase Storage, então não há dado sensível "esquecido" em disco |
-| Qualidade de código | `flutter_lints` configurado, `flutter analyze` limpo em todo o projeto |
+| Qualidade de código | `flutter_lints` configurado, `flutter analyze` limpo em todo o projeto; lançamento com modelo, carga e tile únicos (spec 0010) — antes eram 4 cópias do mesmo modelo e da mesma consulta |
 | Convenção de mudança | Prática de SDD (`specs/NNNN-nome/requirements.md` → `design.md` → `tasks.md`) para toda feature nova a partir da Fase 2 |
-| Testes automatizados (N1) | `test/wav_encoder_test.dart`, `test/lancamento_extraido_test.dart`, `test/widget_test.dart` — cobrem a lógica pura testável em Dart (WAV encoding, parsing da extração de IA); regras de negócio que vivem só em SQL (`calcular_saldo` etc.) ainda não têm teste automatizado — ver nota em N1 abaixo |
+| Testes automatizados (N1) | `test/formatters_test.dart`, `test/mascaras_test.dart`, `test/wav_encoder_test.dart`, `test/lancamento_extraido_test.dart`, `test/widget_test.dart` `test/lancamento_detalhado_test.dart` — 51 testes cobrindo a lógica pura testável em Dart (formatação de moeda/data, máscaras e dígito verificador de CPF/CNPJ, normalização de nome, WAV encoding, parsing da extração de IA, mapeamento de linha do Supabase para `LancamentoDetalhado` e tradução de status); regras de negócio que vivem só em SQL (`calcular_saldo` etc.) ainda não têm teste automatizado — ver nota em N1 abaixo |
 | CI (N2) | GitHub Actions (`.github/workflows/ci.yml`) rodando `flutter analyze` + `flutter test` a cada push, no repositório `github.com/AlanyLourenco/spokfin` |
-| Rate limiting nas Edge Functions de IA (N4) | Migration `0010_rate_limit_ia.sql` (tabela `ia_uso` + RPC `registrar_uso_ia`) — 30 chamadas/hora por usuário, checado antes de gastar com a OpenAI em `parse-lancamento` e `transcrever-audio` |
+| Rate limiting nas Edge Functions de IA (N4) | Migration `0010_rate_limit_ia.sql` (tabela `ia_uso` + RPC `registrar_uso_ia`) — 30 chamadas/hora por usuário, checado antes de gastar cota do Gemini em `parse-lancamento` e `transcrever-audio` |
 | Paginação nas listas (N5) | Histórico (limite crescente sobre as 2 fontes mescladas + "Carregar mais"), Clientes (keyset por `nome` + busca server-side com debounce) e MRR (keyset por `created_at`) — todas em páginas de 30 itens |
 | Política de Privacidade + Termos de Uso (N6) | `TermosScreen` (specs/0005) — rascunho técnico-funcional; revisão por advogado ainda recomendada antes de lançamento público |
 | Exclusão de conta e dados (N7) | `PerfilScreen` → Edge Function `excluir-conta`, cascata de FK já existente (specs/0005) |
@@ -72,7 +72,7 @@ Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` já foram roda
 | N10 | Teste real em emulador/dispositivo Android e iOS | Distribuição | Todo o desenvolvimento e teste desta sessão foi via `flutter run -d chrome`/web-server; mobile nunca foi validado de fato, apesar do projeto ter os diretórios `android/`/`ios/` desde a Fase 0 |
 | N11 | Deploy web de produção (hosting + domínio + HTTPS) | Distribuição | Hoje só roda em `localhost` durante desenvolvimento |
 | N12 | Publicação nas lojas (Google Play / App Store) | Distribuição | Depende de conta de desenvolvedor (custo: única vez ~US$25 Google, ~US$99/ano Apple) — decisão de produto, não só técnica |
-| N13 | Confirmar plano/tier do Supabase (backup automático, limites de linha/storage) | Confiabilidade | Plano gratuito tem backup e limites diferentes do pago; decisão de produto |
+| N13 | **Plano do Supabase — o projeto está PAUSADO** (backup automático, limites, pausa por inatividade) | Confiabilidade | **Deixou de ser hipotético: em 01/09/2026 o projeto `AlanyLourenco's Project` foi encontrado pausado.** O plano gratuito suspende o projeto após um período sem uso — com ele pausado, o app inteiro fica fora do ar (sem Auth, sem banco, sem Edge Functions). Os dados seguem íntegros e o projeto é retomável pelo dashboard **até 08/09/2027**; depois disso deixa de ser retomável, restando só baixar o backup. Ver seção "Estado do Supabase" abaixo |
 
 ---
 
@@ -113,7 +113,26 @@ flowchart TD
 
 ### Fase A — Destravar o que já está pronto ✅
 - ✅ Migrations `0009_arquivar_cliente.sql` e `0010_rate_limit_ia.sql` rodadas no Supabase.
-- ⚠️ **N13** ainda em aberto: confirmar/decidir o plano Supabase (backup automático e limites) antes de crescer a base de dados.
+- ✅ **Migrations conferidas de fato** (01–03/09/2026, direto no `information_schema`/`pg_proc`): a `0011` estava faltando e foi aplicada; as 13 estão em dia. Ver [`../supabase/migrations/README.md`](../supabase/migrations/README.md).
+- 🟡 **N13:** o projeto foi encontrado pausado e retomado. A pausa por inatividade continua sendo característica do plano gratuito — ver "Estado do Supabase" abaixo.
+
+### Estado do Supabase (01/09/2026)
+
+O projeto `AlanyLourenco's Project` foi encontrado **pausado** no plano gratuito e **já foi retomado** — está ativo (AWS `sa-east-1`, 27 MB de 500 MB de banco, 0 usuários ativos no ciclo). O registro abaixo fica porque a causa não foi embora: é o comportamento do plano gratuito e vai se repetir.
+
+| Fato | Consequência |
+|---|---|
+| Todos os dados, backups e objetos de storage seguiram íntegros | Nada foi perdido |
+| Retomável pelo dashboard até **08/09/2027** | Depois dessa data o projeto não é mais retomável — só resta baixar o backup e recriar do zero |
+| Com o projeto pausado, não há Auth, banco nem Edge Functions | **O app não abre.** Login falha, e nenhum teste manual ou verificação de migration é possível |
+| A pausa é do plano gratuito, por inatividade | Vai acontecer de novo sempre que o projeto ficar um tempo sem uso — não é evento único |
+
+**O que fazer:**
+
+1. **Agora:** Dashboard → **Resume project**. É gratuito e restaura tudo; leva alguns minutos.
+2. **Logo em seguida:** conferir o status real das migrations e marcar em [`../supabase/migrations/README.md`](../supabase/migrations/README.md) — a tabela de lá foi preenchida por dedução e precisa dessa confirmação.
+3. **Decisão de produto (o N13 original):** enquanto o projeto for só de desenvolvimento, conviver com a pausa e retomar quando precisar é aceitável. A partir do momento em que existir **um usuário real** (mesmo que seja um teste com uma pessoa de fora), a pausa por inatividade deixa de ser aceitável — o app simplesmente some do ar sem aviso. Isso torna o plano pago um pré-requisito da **Fase E (deploy de produção, N11)**, não uma decisão adiável.
+4. Baixar um backup (**Download backups**) antes de qualquer janela longa sem mexer no projeto.
 
 ### Fase B — Rede de segurança técnica ✅ (parcial)
 - ✅ **N1 (parte Dart)** Testes automatizados da lógica pura testável em Flutter (WAV encoder, parsing da extração de IA).

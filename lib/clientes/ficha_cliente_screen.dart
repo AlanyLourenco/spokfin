@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
+import '../lancamentos/lancamentos_repository.dart';
 import '../main.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
@@ -39,7 +40,14 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
     _future = _carregar();
   }
 
+  /// Quantos lançamentos do histórico já estão à mostra. A lista renderizava
+  /// tudo de uma vez: um cliente antigo com centenas de lançamentos virava uma
+  /// rolagem infinita, e todos os widgets eram construídos de saída.
+  static const _passoHistorico = 10;
+  int _visiveisHistorico = _passoHistorico;
+
   void _recarregar() {
+    _visiveisHistorico = _passoHistorico;
     setState(() {
       _future = _carregar();
     });
@@ -76,34 +84,10 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
       }
     }
 
-    final historico = <_ItemHistorico>[
-      for (final t in transacoes)
-        _ItemHistorico(
-          id: t['id'] as String,
-          origem: 'transacao',
-          data: DateTime.parse(t['data_transacao'] as String),
-          descricao: t['descricao'] as String? ?? '',
-          categoria: t['categoria'] as String? ?? '',
-          valor: (t['valor'] as num).toDouble(),
-          tipo: t['tipo'] as String,
-          status: 'pago',
-          pago: true,
-          notaFiscalStatus: t['nota_fiscal_status'] as String,
-        ),
-      for (final c in contas)
-        _ItemHistorico(
-          id: c['id'] as String,
-          origem: 'conta',
-          data: DateTime.parse(c['vencimento'] as String),
-          descricao: c['descricao'] as String? ?? '',
-          categoria: c['categoria'] as String? ?? '',
-          valor: (c['valor'] as num).toDouble(),
-          tipo: c['tipo'] == 'receber' ? 'entrada' : 'saida',
-          status: c['status'] as String,
-          pago: c['status'] == 'pago',
-          notaFiscalStatus: c['nota_fiscal_status'] as String,
-        ),
-    ]..sort((a, b) => b.data.compareTo(a.data));
+    final historico = await buscarLancamentos(
+      clienteId: _clienteId,
+      incluirContasPagas: true,
+    );
 
     // interações por mês: últimos 6 meses, contando transações + contas
     final agora = DateTime.now();
@@ -149,23 +133,11 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
     }
   }
 
-  Future<void> _abrirDetalhes(_ItemHistorico item) async {
+  Future<void> _abrirDetalhes(LancamentoDetalhado item) async {
     final alterou = await mostrarDetalhesLancamento(
       context,
       empresaId: widget.empresaId,
-      lancamento: LancamentoDetalhado(
-        id: item.id,
-        origem: item.origem,
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor: item.valor,
-        tipo: item.tipo,
-        data: item.data,
-        status: item.status,
-        clienteId: _clienteId,
-        clienteNome: _nome,
-        notaFiscalStatus: item.notaFiscalStatus,
-      ),
+      lancamento: item,
     );
     if (alterou == true) _recarregar();
   }
@@ -309,7 +281,7 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                   Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: AppColors.surfaceAlt,
+                        backgroundColor: AppColors.surface,
                         child: Text(
                           iniciais,
                           style: const TextStyle(color: AppColors.primary),
@@ -515,7 +487,8 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                       ),
                     )
                   else
-                    for (final h in dados.historico)
+                    for (final h
+                        in dados.historico.take(_visiveisHistorico))
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: InkWell(
@@ -537,7 +510,19 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(h.descricao),
+                                    Text(
+                                      h.descricao.isEmpty
+                                          ? 'Sem descrição'
+                                          : h.descricao,
+                                      style: TextStyle(
+                                        color: h.descricao.isEmpty
+                                            ? AppColors.textMuted
+                                            : AppColors.textPrimary,
+                                        fontStyle: h.descricao.isEmpty
+                                            ? FontStyle.italic
+                                            : null,
+                                      ),
+                                    ),
                                     Text(
                                       '${formatarData(h.data)} · ${h.pago ? 'Pago' : 'Pendente'}',
                                       style: const TextStyle(
@@ -561,6 +546,17 @@ class _FichaClienteScreenState extends State<FichaClienteScreen> {
                           ),
                         ),
                       ),
+                  if (dados.historico.length > _visiveisHistorico)
+                    Center(
+                      child: TextButton(
+                        onPressed: () => setState(
+                          () => _visiveisHistorico += _passoHistorico,
+                        ),
+                        child: Text(
+                          'Ver mais (${dados.historico.length - _visiveisHistorico} restantes)',
+                        ),
+                      ),
+                    ),
                 ],
                   ),
                 ),
@@ -607,32 +603,6 @@ class _MiniBarChart extends StatelessWidget {
   }
 }
 
-class _ItemHistorico {
-  _ItemHistorico({
-    required this.id,
-    required this.origem,
-    required this.data,
-    required this.descricao,
-    required this.categoria,
-    required this.valor,
-    required this.tipo,
-    required this.status,
-    required this.pago,
-    required this.notaFiscalStatus,
-  });
-
-  final String id;
-  final String origem;
-  final DateTime data;
-  final String descricao;
-  final String categoria;
-  final double valor;
-  final String tipo;
-  final String status;
-  final bool pago;
-  final String notaFiscalStatus;
-}
-
 class _FichaClienteDados {
   _FichaClienteDados({
     required this.totalPago,
@@ -646,7 +616,7 @@ class _FichaClienteDados {
   final double totalPago;
   final double debito;
   final int servicosPrestados;
-  final List<_ItemHistorico> historico;
+  final List<LancamentoDetalhado> historico;
   final List<Map<String, dynamic>> encarregados;
   final List<int> interacoesPorMes;
 }

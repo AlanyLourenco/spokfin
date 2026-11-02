@@ -201,7 +201,7 @@ class _ClienteFormScreenState extends State<ClienteFormScreen> {
                       child: DropdownButtonFormField<String>(
                         initialValue: _tipoChavePix,
                         decoration: _decoracao('Selecione o tipo'),
-                        dropdownColor: AppColors.surfaceAlt,
+                        dropdownColor: AppColors.surface,
                         borderRadius: BorderRadius.circular(12),
                         items: [
                           for (final entrada in _tiposChavePix.entries)

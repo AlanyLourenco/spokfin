@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../main.dart';
+import '../shared/avatar_perfil.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
@@ -280,10 +281,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: supabase.auth.signOut,
-          ),
+          AvatarPerfil(empresaId: widget.empresaId),
         ],
       ),
       body: Builder(
@@ -403,7 +401,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                             child: ListTile(
                               contentPadding: EdgeInsets.zero,
                               leading: CircleAvatar(
-                                backgroundColor: AppColors.surfaceAlt,
+                                backgroundColor: AppColors.surface,
                                 child: Text(
                                   iniciais,
                                   style: const TextStyle(

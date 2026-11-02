@@ -400,7 +400,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                               selected: _categoria == c,
                               onSelected: (_) => setState(() => _categoria = c),
                               selectedColor: AppColors.primary,
-                              backgroundColor: AppColors.surfaceAlt,
+                              backgroundColor: AppColors.surface,
                               labelStyle: TextStyle(
                                 color: _categoria == c
                                     ? AppColors.textPrimary
@@ -451,7 +451,7 @@ class _RevisarLancamentoScreenState extends State<RevisarLancamentoScreen> {
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                             ),
-                            dropdownColor: AppColors.surfaceAlt,
+                            dropdownColor: AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
                             style: const TextStyle(color: AppColors.textPrimary),
                             hint: Text(
@@ -600,7 +600,7 @@ class _ChipAcao extends StatelessWidget {
     return ActionChip(
       label: Text(label),
       onPressed: onTap,
-      backgroundColor: AppColors.surfaceAlt,
+      backgroundColor: AppColors.surface,
       labelStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
       side: BorderSide.none,
     );

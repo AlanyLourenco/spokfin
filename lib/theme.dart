@@ -3,28 +3,38 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const background = Color(0xFF0F172A);
-  static const surface = Color(0xFF192134);
-  static const surfaceAlt = Color(0xFF232B3E);
-  static const border = Color(0xFF232B3E);
+  static const background = Color(0xFF04090D);
 
-  /// Divisor ultra-sutil (`rgba(255,255,255,0.08)`) usado em bordas de card
-  /// e separadores de lista — mais discreto que [border].
+  /// Superfície de card — e também de campo de formulário, que precisa de um
+  /// degrau visível sobre o fundo quase preto (ver spec 0012, decisão D2).
+  static const surface = Color(0xFF0D1520);
+
+  /// Superfície rebaixada, mais escura que [surface]: área afundada **dentro**
+  /// de um card (fundo de gráfico, mini-stat). Nunca use em campo de
+  /// formulário sobre o fundo — some.
+  static const surfaceSunken = Color(0xFF0A1119);
+
+  /// Borda sólida de card e de contêiner.
+  static const border = Color(0xFF1B2533);
+
+  /// Divisor ultra-sutil (`rgba(255,255,255,0.08)`) para separar linha de
+  /// lista — mais discreto que [border], que fecha o card por fora.
   static const hairline = Color(0x14FFFFFF);
 
   /// Azul-confiança — ação primária, navegação selecionada, foco, seleção de
   /// UI. Cor estrutural do produto, não tem relação com valor monetário.
-  static const primary = Color(0xFF1E40AF);
-  static const primaryStrong = Color(0xFF1E3A8A);
+  static const primary = Color(0xFF2563EB);
+  static const primaryStrong = Color(0xFF1D4ED8);
 
   /// Verde-lucro — reservado exclusivamente para valor monetário positivo e
   /// status "pago". Nunca usado como cor de ação de UI genérica.
-  static const accent = Color(0xFF059669);
-  static const accentStrong = Color(0xFF047857);
+  static const accent = Color(0xFF4ADE80);
+  static const accentStrong = Color(0xFF22C55E);
 
-  static const negative = Color(0xFFDC2626);
-  static const textPrimary = Color(0xFFFFFFFF);
-  static const textMuted = Color(0xFF94A3B8);
+  /// Coral — saída de dinheiro e erro.
+  static const negative = Color(0xFFFB7185);
+  static const textPrimary = Color(0xFFF5F7FA);
+  static const textMuted = Color(0xFF6B7A8F);
 }
 
 ThemeData buildAppTheme() {
@@ -45,14 +55,13 @@ ThemeData buildAppTheme() {
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       centerTitle: false,
-      // Calistoga só no título de tela — dá personalidade de marca onde
-      // não há dado numérico. Corpo/formulário/valor continuam em Inter,
-      // que tem números tabulares de verdade (Calistoga não).
+      // Inter em tudo, como o protótipo (spec 0012, decisão D3). A Calistoga
+      // continua carregada no web/index.html — voltar é trocar esta linha.
       titleTextStyle: TextStyle(
-        fontFamily: 'Calistoga',
+        fontFamily: 'Inter',
         color: AppColors.textPrimary,
         fontSize: 20,
-        fontWeight: FontWeight.w400,
+        fontWeight: FontWeight.w600,
       ),
     ),
     cardColor: AppColors.surface,
@@ -64,7 +73,7 @@ ThemeData buildAppTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.surfaceAlt,
+      fillColor: AppColors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,
@@ -81,7 +90,7 @@ ThemeData buildAppTheme() {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        backgroundColor: AppColors.surfaceAlt,
+        backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textMuted,
         selectedBackgroundColor: AppColors.primary,
         selectedForegroundColor: AppColors.textPrimary,

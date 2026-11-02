@@ -132,7 +132,7 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                             ),
-                            dropdownColor: AppColors.surfaceAlt,
+                            dropdownColor: AppColors.surface,
                             borderRadius: BorderRadius.circular(12),
                             hint: const Text('Selecione um cliente'),
                             items: [
@@ -216,7 +216,7 @@ class _NovaAssinaturaScreenState extends State<NovaAssinaturaScreen> {
                         data: SliderThemeData(
                           activeTrackColor: AppColors.primary,
                           thumbColor: AppColors.primary,
-                          inactiveTrackColor: AppColors.surfaceAlt,
+                          inactiveTrackColor: AppColors.surface,
                           overlayColor: AppColors.primary.withValues(alpha: 0.2),
                           valueIndicatorColor: AppColors.primary,
                         ),
@@ -277,7 +277,7 @@ class _ChipAcao extends StatelessWidget {
     return ActionChip(
       label: Text(label),
       onPressed: onTap,
-      backgroundColor: AppColors.surfaceAlt,
+      backgroundColor: AppColors.surface,
       labelStyle: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
       side: BorderSide.none,
     );

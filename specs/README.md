@@ -19,19 +19,27 @@ Convenção para desenvolver features neste projeto: antes de escrever código, 
 
 | # | Feature | Status |
 |---|---------|--------|
-| [0001](0001-mrr-assinantes/) | MRR / Assinantes Mensais | Implementado — falta rodar migration + testar |
-| [0002](0002-ficha-cliente/) | Ficha do Cliente (débito, encarregados, histórico) | Implementado — falta rodar migration + testar |
+| [0001](0001-mrr-assinantes/) | MRR / Assinantes Mensais | Implementado (migration `0005` — status em [`supabase/migrations/README.md`](../supabase/migrations/README.md)) |
+| [0002](0002-ficha-cliente/) | Ficha do Cliente (débito, encarregados, histórico) | Implementado (migration `0006` — status em [`supabase/migrations/README.md`](../supabase/migrations/README.md)) |
 | [0003](0003-excluir-fornecedor/) | Excluir/Arquivar Fornecedor | Implementado — falta testar no navegador |
 | [0004](0004-periodo-personalizado-balanco/) | Período Personalizado no Balanço | Implementado — falta testar no navegador |
-| [0005](0005-conformidade-lgpd/) | Conformidade Legal (LGPD): Termos, consentimento, exclusão de conta | Implementado — falta rodar migration 0013 + implantar Edge Function `excluir-conta` + testar |
+| [0005](0005-conformidade-lgpd/) | Conformidade Legal (LGPD): Termos, consentimento, exclusão de conta | Implementado; migration `0013` e Edge Function `excluir-conta` registradas como aplicadas em [`supabase/migrations/README.md`](../supabase/migrations/README.md) |
 | [0006](0006-migrar-ia-gemini/) | Migrar IA de OpenAI para Google Gemini | Implementado e testado (Anotar) — modelo `gemini-flash-lite-latest` |
 | [0007](0007-economia-uso-ia/) | Medidas de Economia no Uso de IA | Implementado e testado (texto normal) |
 | [0008](0008-unificacao-visual-motion/) | Unificação Visual e Motion (Impeccable + Emil Kowalski) | Implementado e testado — todos os 6 lotes concluídos |
 | [0009](0009-paleta-azul-verde-tipografia-inter/) | Nova Paleta (Azul+Verde) e Tipografia Inter (UI/UX Pro Max) | Implementado e testado — falta usuário validar pessoalmente |
+| [0010](0010-organizacao-codigo/) | Organização do código: modelo e componentes de lançamento unificados | Implementado (Etapas 1 e 2) — falta teste manual no navegador; 6 divergências entre telas (DV1-DV6) reportadas no `design.md`, sem correção |
+| [0011](0011-ambiente-local-supabase/) | Ambiente de desenvolvimento separado (projeto Supabase de dev) | `requirements.md` reescrito (stack local com Docker descartado por RAM) — aguardando aprovação para o design |
+| [0012](0012-front-prototipo/) | Alinhar o front ao protótipo (spokfin-ledger-ai) | `requirements.md` escrito e paleta decidida (azul continua sendo ação) — na fila **depois** da `0011` |
+| [0013](0013-correcoes-ux-revisao/) | Correções de UI/UX apontadas na revisão | Implementado — 5 problemas apontados pelo usuário + 3 achados na auditoria; falta o usuário conferir |
 
 ## Catálogo de histórias de usuário
 
 [`historias-de-usuario.md`](historias-de-usuario.md) documenta, retroativamente, o comportamento esperado de cada tela do app como histórias de usuário — todas as lacunas identificadas na primeira rodada já foram implementadas.
+
+## Documentação do projeto
+
+O mapa de qual documento é fonte da verdade sobre o quê está em [`CLAUDE.md`](../CLAUDE.md#documentação-do-projeto). Ao concluir uma feature, atualize nesta ordem: `tasks.md` → a tabela acima → [`requisitos-e-cronograma.md`](requisitos-e-cronograma.md) → [`supabase/migrations/README.md`](../supabase/migrations/README.md) se houve migration.
 
 ## Requisitos e cronograma
 

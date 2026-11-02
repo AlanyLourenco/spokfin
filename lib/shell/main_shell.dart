@@ -6,7 +6,7 @@ import '../empresa/home_screen.dart';
 import '../historico/historico_screen.dart';
 import '../mrr/mrr_screen.dart';
 import '../shared/quick_actions_speed_dial.dart';
-import '../theme.dart';
+import 'navegacao_flutuante.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({
@@ -60,6 +60,8 @@ class _MainShellState extends State<MainShell> {
     ];
 
     return Scaffold(
+      // O conteúdo corre por baixo da pílula de navegação, que flutua.
+      extendBody: true,
       body: IndexedStack(
         index: _index,
         children: abas.map((a) => a.corpo).toList(),
@@ -67,34 +69,13 @@ class _MainShellState extends State<MainShell> {
       floatingActionButton: _index == 0
           ? null
           : QuickActionsSpeedDial(empresaId: widget.empresaId),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: AppColors.background,
-          indicatorColor: AppColors.primary,
-          labelTextStyle: WidgetStateProperty.resolveWith(
-            (states) => TextStyle(
-              fontSize: 11,
-              color: states.contains(WidgetState.selected)
-                  ? AppColors.textPrimary
-                  : AppColors.textMuted,
-            ),
-          ),
-          iconTheme: WidgetStateProperty.resolveWith(
-            (states) => IconThemeData(
-              color: states.contains(WidgetState.selected)
-                  ? AppColors.textPrimary
-                  : AppColors.textMuted,
-            ),
-          ),
-        ),
-        child: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: (i) => setState(() => _index = i),
-          destinations: [
-            for (final a in abas)
-              NavigationDestination(icon: Icon(a.icone), label: a.rotulo),
-          ],
-        ),
+      bottomNavigationBar: NavegacaoFlutuante(
+        itens: [
+          for (final a in abas)
+            ItemNavegacao(icone: a.icone, rotulo: a.rotulo),
+        ],
+        indiceSelecionado: _index,
+        aoSelecionar: (i) => setState(() => _index = i),
       ),
     );
   }

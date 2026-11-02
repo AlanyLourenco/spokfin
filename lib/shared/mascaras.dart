@@ -68,6 +68,49 @@ class CpfCnpjInputFormatter extends TextInputFormatter {
   }
 }
 
+/// Máscara de data `dd/mm/aaaa`, reformatando a cada dígito digitado —
+/// o usuário digita só números e as barras aparecem sozinhas.
+class DataInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digitos = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limitado = digitos.length > 8 ? digitos.substring(0, 8) : digitos;
+
+    final buffer = StringBuffer();
+    for (var i = 0; i < limitado.length; i++) {
+      if (i == 2 || i == 4) buffer.write('/');
+      buffer.write(limitado[i]);
+    }
+
+    final texto = buffer.toString();
+    return TextEditingValue(
+      text: texto,
+      selection: TextSelection.collapsed(offset: texto.length),
+    );
+  }
+}
+
+/// Converte `dd/mm/aaaa` em [DateTime], ou `null` se a data não existe.
+///
+/// Rejeita o que o `DateTime.parse` aceitaria calado: 31/02 vira 03/03 num
+/// construtor normal, então o resultado é conferido campo a campo.
+DateTime? dataDeTexto(String texto) {
+  final digitos = _apenasDigitos(texto);
+  if (digitos.length != 8) return null;
+
+  final dia = int.parse(digitos.substring(0, 2));
+  final mes = int.parse(digitos.substring(2, 4));
+  final ano = int.parse(digitos.substring(4, 8));
+  if (mes < 1 || mes > 12 || dia < 1 || ano < 1900 || ano > 2200) return null;
+
+  final data = DateTime(ano, mes, dia);
+  if (data.day != dia || data.month != mes || data.year != ano) return null;
+  return data;
+}
+
 String _apenasDigitos(String texto) => texto.replaceAll(RegExp(r'\D'), '');
 
 /// Telefone válido: 10 dígitos (fixo) ou 11 (celular), DDD incluso.

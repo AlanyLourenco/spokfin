@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../lancamentos/status_lancamento.dart';
 import '../main.dart';
+import '../shared/avatar_perfil.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
@@ -183,10 +185,7 @@ class _MrrScreenState extends State<MrrScreen> {
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: supabase.auth.signOut,
-          ),
+          AvatarPerfil(empresaId: widget.empresaId),
         ],
       ),
       body: Builder(
@@ -325,15 +324,8 @@ class _AssinaturaTile extends StatelessWidget {
     final valor = (assinatura['valor_mensalidade'] as num).toDouble();
     final diaVencimento = assinatura['dia_vencimento'] as int;
     final status = assinatura['status_mes_atual'] as String;
-    final pago = status == 'pago';
-    final rotuloStatus = switch (status) {
-      'pago' => 'Pago',
-      'atrasado' => 'Atrasado',
-      _ => 'Pendente',
-    };
-    final corStatus = pago
-        ? AppColors.accent
-        : (status == 'atrasado' ? AppColors.negative : AppColors.textMuted);
+    final rotulo = rotuloStatus(status);
+    final cor = corStatus(status);
 
     final iniciais = iniciaisDoNome(nome);
 
@@ -344,7 +336,7 @@ class _AssinaturaTile extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           onTap: onTap,
           leading: CircleAvatar(
-            backgroundColor: AppColors.surfaceAlt,
+            backgroundColor: AppColors.surface,
             child: Text(
               iniciais,
               style: const TextStyle(color: AppColors.primary),
@@ -357,13 +349,13 @@ class _AssinaturaTile extends StatelessWidget {
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: corStatus.withValues(alpha: 0.15),
+              color: cor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              rotuloStatus,
+              rotulo,
               style: TextStyle(
-                color: corStatus,
+                color: cor,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),

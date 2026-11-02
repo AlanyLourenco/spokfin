@@ -108,4 +108,53 @@ void main() {
       expect(resultado.text, '11.222.333/0001-81');
     });
   });
+
+  group('DataInputFormatter', () {
+    TextEditingValue formatar(String texto) => DataInputFormatter()
+        .formatEditUpdate(
+          TextEditingValue.empty,
+          TextEditingValue(text: texto),
+        );
+
+    test('insere as barras sozinho conforme os dígitos entram', () {
+      expect(formatar('2').text, '2');
+      expect(formatar('23').text, '23');
+      expect(formatar('236').text, '23/6');
+      expect(formatar('2306').text, '23/06');
+      expect(formatar('230620').text, '23/06/20');
+      expect(formatar('23062005').text, '23/06/2005');
+    });
+
+    test('descarta dígito além dos 8 e ignora o que não é número', () {
+      expect(formatar('230620051234').text, '23/06/2005');
+      expect(formatar('23/06/2005').text, '23/06/2005');
+      expect(formatar('abc23def06').text, '23/06');
+    });
+  });
+
+  group('dataDeTexto', () {
+    test('converte uma data válida', () {
+      expect(dataDeTexto('23/06/2005'), DateTime(2005, 6, 23));
+      expect(dataDeTexto('29/02/2024'), DateTime(2024, 2, 29));
+    });
+
+    test('rejeita data incompleta', () {
+      expect(dataDeTexto(''), isNull);
+      expect(dataDeTexto('23/06'), isNull);
+      expect(dataDeTexto('2/05/2001'), isNull);
+    });
+
+    test('rejeita dia que não existe no mês, em vez de deslizar', () {
+      // DateTime(2023, 2, 31) viraria 03/03 calado — o validador barra.
+      expect(dataDeTexto('31/02/2023'), isNull);
+      expect(dataDeTexto('31/04/2023'), isNull);
+      expect(dataDeTexto('29/02/2023'), isNull);
+    });
+
+    test('rejeita mês e ano fora de faixa', () {
+      expect(dataDeTexto('01/13/2023'), isNull);
+      expect(dataDeTexto('01/00/2023'), isNull);
+      expect(dataDeTexto('01/01/1800'), isNull);
+    });
+  });
 }

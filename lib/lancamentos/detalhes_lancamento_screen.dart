@@ -474,9 +474,10 @@ class _LancamentoModalState extends State<_LancamentoModal> {
     final positivo = _entrada;
     final cor = positivo ? AppColors.accent : AppColors.negative;
     final sinal = positivo ? '+' : '-';
-    final statusLabel = _pago
-        ? 'Pago'
-        : (_lancamento.status == 'atrasado' ? 'Atrasado' : 'Pendente');
+    final statusLabel = _lancamento.statusLabel;
+    // DV4 (spec 0010): esta cor de "pendente" é um laranja escrito à mão, fora
+    // de AppColors, e diverge do textMuted que o MRR usa no mesmo estado.
+    // Unificar muda o que o usuário vê, então fica para uma spec própria.
     final statusCor = _pago
         ? AppColors.accent
         : (_lancamento.status == 'atrasado'
@@ -604,7 +605,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.textPrimary,
-              disabledBackgroundColor: AppColors.surfaceAlt,
+              disabledBackgroundColor: AppColors.surface,
               disabledForegroundColor: AppColors.textMuted,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
@@ -709,7 +710,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
           label: 'STATUS',
           child: SegmentedButton<String>(
             style: SegmentedButton.styleFrom(
-              backgroundColor: AppColors.surfaceAlt,
+              backgroundColor: AppColors.surface,
               foregroundColor: AppColors.textMuted,
               selectedBackgroundColor: Colors.white,
               selectedForegroundColor: AppColors.background,
@@ -738,7 +739,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                       selected: _categoria == c,
                       onSelected: (_) => setState(() => _categoria = c),
                       selectedColor: AppColors.primary,
-                      backgroundColor: AppColors.surfaceAlt,
+                      backgroundColor: AppColors.surface,
                       labelStyle: const TextStyle(color: AppColors.textPrimary),
                       side: BorderSide.none,
                     ),
@@ -795,7 +796,7 @@ class _LancamentoModalState extends State<_LancamentoModal> {
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
                 ),
-                dropdownColor: AppColors.surfaceAlt,
+                dropdownColor: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
                 style: const TextStyle(color: AppColors.textPrimary),
                 hint: Text(
@@ -1015,7 +1016,7 @@ class _PillChip extends StatelessWidget {
     return ActionChip(
       label: Text(label),
       onPressed: onTap,
-      backgroundColor: AppColors.surfaceAlt,
+      backgroundColor: AppColors.surface,
       labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
       side: BorderSide.none,
     );

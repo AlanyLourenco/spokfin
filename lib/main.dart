@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth/auth_gate.dart';
+import 'shared/coluna_central.dart';
 import 'theme.dart';
 
 Future<void> main() async {
@@ -33,6 +34,9 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('pt', 'BR')],
       locale: const Locale('pt', 'BR'),
+      // Uma linha limita todas as telas à coluna estreita do protótipo
+      // (spec 0012, decisão D5) — inclusive as que ainda não existem.
+      builder: (context, child) => ColunaCentral(child: child!),
       home: const AuthGate(),
     );
   }

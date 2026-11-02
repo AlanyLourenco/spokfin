@@ -5,6 +5,8 @@ import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/falar_screen.dart';
 import '../lancamentos/ia_service.dart';
 import '../lancamentos/lancamento_detalhado.dart';
+import '../lancamentos/lancamento_tile.dart';
+import '../lancamentos/lancamentos_repository.dart';
 import '../lancamentos/revisar_lancamento_screen.dart';
 import '../main.dart';
 import '../perfil/perfil_screen.dart';
@@ -12,36 +14,6 @@ import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
 import '../theme.dart';
-
-class _LancamentoResumo {
-  _LancamentoResumo({
-    required this.id,
-    required this.origem,
-    required this.data,
-    required this.descricao,
-    required this.categoria,
-    required this.valor,
-    required this.tipo,
-    required this.status,
-    required this.statusLabel,
-    required this.notaFiscalStatus,
-    this.clienteId,
-    this.clienteNome,
-  });
-
-  final String id;
-  final String origem;
-  final DateTime data;
-  final String descricao;
-  final String categoria;
-  final double valor;
-  final String tipo;
-  final String status;
-  final String statusLabel;
-  final String notaFiscalStatus;
-  final String? clienteId;
-  final String? clienteNome;
-}
 
 class HomeTabContent extends StatefulWidget {
   const HomeTabContent({
@@ -106,100 +78,15 @@ class _HomeTabContentState extends State<HomeTabContent> {
       }
     }
 
-    final transacoes = await supabase
-        .from('transacoes')
-        .select()
-        .eq('empresa_id', widget.empresaId)
-        .order('data_transacao', ascending: false)
-        .limit(5);
-
-    final contas = await supabase
-        .from('contas_pagar_receber_vw')
-        .select()
-        .eq('empresa_id', widget.empresaId)
-        .neq('status_efetivo', 'pago')
-        .order('vencimento', ascending: false)
-        .limit(5);
-
-    final hoje = DateTime.now();
-    final limiteVencimento = hoje.add(
-      const Duration(days: _diasAlertaVencimento),
+    final recentes = await buscarLancamentos(
+      empresaId: widget.empresaId,
+      limitePorFonte: 5,
     );
-    final vencendoRows = await supabase
-        .from('contas_pagar_receber_vw')
-        .select()
-        .eq('empresa_id', widget.empresaId)
-        .eq('status_efetivo', 'pendente')
-        .gte('vencimento', hoje.toIso8601String().split('T').first)
-        .lte('vencimento', limiteVencimento.toIso8601String().split('T').first)
-        .order('vencimento');
 
-    final clienteIds = <String>{
-      for (final t in transacoes)
-        if (t['cliente_id'] != null) t['cliente_id'] as String,
-      for (final c in contas)
-        if (c['cliente_id'] != null) c['cliente_id'] as String,
-      for (final c in vencendoRows)
-        if (c['cliente_id'] != null) c['cliente_id'] as String,
-    }.toList();
-
-    final clientes = clienteIds.isEmpty
-        ? <Map<String, dynamic>>[]
-        : List<Map<String, dynamic>>.from(
-            await supabase
-                .from('clientes')
-                .select('id, nome')
-                .inFilter('id', clienteIds),
-          );
-    final nomesPorId = {
-      for (final c in clientes) c['id'] as String: c['nome'] as String,
-    };
-
-    _LancamentoResumo construirResumoConta(Map<String, dynamic> c) {
-      return _LancamentoResumo(
-        id: c['id'] as String,
-        origem: 'conta',
-        data: DateTime.parse(c['vencimento'] as String),
-        descricao: c['descricao'] as String? ?? '',
-        categoria: c['categoria'] as String? ?? '',
-        valor: (c['valor'] as num).toDouble(),
-        tipo: c['tipo'] == 'receber' ? 'entrada' : 'saida',
-        status: c['status_efetivo'] as String,
-        statusLabel: c['status_efetivo'] == 'atrasado'
-            ? 'Atrasado'
-            : 'Pendente',
-        notaFiscalStatus: c['nota_fiscal_status'] as String,
-        clienteId: c['cliente_id'] as String?,
-        clienteNome: c['cliente_id'] == null
-            ? null
-            : nomesPorId[c['cliente_id']],
-      );
-    }
-
-    final recentes = <_LancamentoResumo>[
-      for (final t in transacoes)
-        _LancamentoResumo(
-          id: t['id'] as String,
-          origem: 'transacao',
-          data: DateTime.parse(t['data_transacao'] as String),
-          descricao: t['descricao'] as String? ?? '',
-          categoria: t['categoria'] as String? ?? '',
-          valor: (t['valor'] as num).toDouble(),
-          tipo: t['tipo'] as String,
-          status: 'pago',
-          statusLabel: 'Pago',
-          notaFiscalStatus: t['nota_fiscal_status'] as String,
-          clienteId: t['cliente_id'] as String?,
-          clienteNome: t['cliente_id'] == null
-              ? null
-              : nomesPorId[t['cliente_id']],
-        ),
-      for (final c in contas) construirResumoConta(c),
-    ]..sort((a, b) => b.data.compareTo(a.data));
-
-    final vencendoEmBreve = [
-      for (final c in vencendoRows) construirResumoConta(c),
-    ]..sort((a, b) => a.data.compareTo(b.data));
+    final vencendoEmBreve = await buscarVencendoEmBreve(
+      empresaId: widget.empresaId,
+      dias: _diasAlertaVencimento,
+    );
 
     return _HomeData(
       saldo: (saldo as num).toDouble(),
@@ -247,26 +134,20 @@ class _HomeTabContentState extends State<HomeTabContent> {
     _recarregar();
   }
 
-  Future<void> _abrirDetalhes(_LancamentoResumo item) async {
+  Future<void> _abrirDetalhes(LancamentoDetalhado item) async {
     final alterou = await mostrarDetalhesLancamento(
       context,
       empresaId: widget.empresaId,
-      lancamento: LancamentoDetalhado(
-        id: item.id,
-        origem: item.origem,
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor: item.valor,
-        tipo: item.tipo,
-        data: item.data,
-        status: item.status,
-        clienteId: item.clienteId,
-        clienteNome: item.clienteNome,
-        notaFiscalStatus: item.notaFiscalStatus,
-      ),
+      lancamento: item,
     );
     if (alterou == true) _recarregar();
   }
+
+  /// `categoria · status` — a data não entra numa lista de "recentes".
+  String _subtitulo(LancamentoDetalhado l) => [
+    if (l.categoria.isNotEmpty) l.categoria,
+    l.statusLabel,
+  ].join(' · ');
 
   String get _iniciais => iniciaisDoNome(widget.nomeExibicao);
 
@@ -308,9 +189,9 @@ class _HomeTabContentState extends State<HomeTabContent> {
                         const Text(
                           'spokfin',
                           style: TextStyle(
-                            fontFamily: 'Calistoga',
                             fontSize: 20,
-                            fontWeight: FontWeight.w400,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -322,7 +203,7 @@ class _HomeTabContentState extends State<HomeTabContent> {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.surfaceAlt,
+                              color: AppColors.surface,
                               border: Border.all(color: AppColors.hairline),
                             ),
                             child: Text(
@@ -420,9 +301,12 @@ class _HomeTabContentState extends State<HomeTabContent> {
                             ),
                             const SizedBox(height: 2),
                             for (final l in dados.vencendoEmBreve)
-                              _LancamentoTile(
+                              LancamentoTile(
                                 lancamento: l,
+                                subtitulo: _subtitulo(l),
                                 onTap: () => _abrirDetalhes(l),
+                                emDestaque: true,
+                                pilulaComIcone: true,
                               ),
                           ],
                         ),
@@ -468,9 +352,12 @@ class _HomeTabContentState extends State<HomeTabContent> {
                       )
                     else
                       for (var i = 0; i < dados.recentes.length; i++) ...[
-                        _LancamentoTile(
+                        LancamentoTile(
                           lancamento: dados.recentes[i],
+                          subtitulo: _subtitulo(dados.recentes[i]),
                           onTap: () => _abrirDetalhes(dados.recentes[i]),
+                          emDestaque: true,
+                          pilulaComIcone: true,
                         ),
                         if (i < dados.recentes.length - 1)
                           const Divider(color: AppColors.hairline, height: 1),
@@ -600,8 +487,8 @@ class _HomeData {
   final double saldo;
   final double aReceber;
   final double aPagar;
-  final List<_LancamentoResumo> recentes;
-  final List<_LancamentoResumo> vencendoEmBreve;
+  final List<LancamentoDetalhado> recentes;
+  final List<LancamentoDetalhado> vencendoEmBreve;
 }
 
 class _MiniStat extends StatelessWidget {
@@ -638,99 +525,3 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-class _LancamentoTile extends StatelessWidget {
-  const _LancamentoTile({required this.lancamento, required this.onTap});
-
-  final _LancamentoResumo lancamento;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final positivo = lancamento.tipo == 'entrada';
-    final cor = positivo ? AppColors.accent : AppColors.negative;
-    final sinal = positivo ? '+' : '-';
-    final subtitulo = [
-      if (lancamento.categoria.isNotEmpty) lancamento.categoria,
-      lancamento.statusLabel,
-    ].join(' · ');
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    lancamento.descricao,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        subtitulo,
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (lancamento.notaFiscalStatus == 'pendente') ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border.all(color: AppColors.primary),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.receipt_long,
-                                size: 10,
-                                color: AppColors.primary,
-                              ),
-                              SizedBox(width: 3),
-                              Text(
-                                'NFC-e agendada',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '$sinal ${formatarValorCifrao(lancamento.valor)}',
-              style: TextStyle(
-                color: cor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

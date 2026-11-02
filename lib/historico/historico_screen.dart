@@ -5,10 +5,13 @@ import 'package:printing/printing.dart';
 
 import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
-import '../main.dart';
+import '../lancamentos/lancamento_tile.dart';
+import '../lancamentos/lancamentos_repository.dart';
+import '../shared/avatar_perfil.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
+import '../shared/seletor_periodo.dart';
 import '../theme.dart';
 
 const _tamanhoPagina = 30;
@@ -28,36 +31,6 @@ const _nomesMesesCompletos = [
   'Dezembro',
 ];
 
-class _Item {
-  _Item({
-    required this.id,
-    required this.origem,
-    required this.data,
-    required this.descricao,
-    required this.categoria,
-    required this.valor,
-    required this.tipo,
-    required this.status,
-    required this.statusLabel,
-    required this.notaFiscalStatus,
-    this.clienteId,
-    this.clienteNome,
-  });
-
-  final String id;
-  final String origem;
-  final DateTime data;
-  final String descricao;
-  final String categoria;
-  final double valor;
-  final String tipo;
-  final String status;
-  final String statusLabel;
-  final String notaFiscalStatus;
-  final String? clienteId;
-  final String? clienteNome;
-}
-
 class HistoricoScreen extends StatefulWidget {
   const HistoricoScreen({super.key, required this.empresaId});
 
@@ -68,7 +41,7 @@ class HistoricoScreen extends StatefulWidget {
 }
 
 class _HistoricoScreenState extends State<HistoricoScreen> {
-  List<_Item>? _itens;
+  List<LancamentoDetalhado>? _itens;
   bool _temMais = false;
   bool _carregandoMais = false;
   String? _erro;
@@ -104,7 +77,12 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       _erro = null;
     });
     try {
-      final resultado = await _buscarPagina(_limite);
+      final resultado = await buscarPaginaLancamentos(
+        empresaId: widget.empresaId,
+        limite: _limite,
+        // DV1: o Histórico esconde contas canceladas e a Home não.
+        ignorarCancelados: true,
+      );
       if (!mounted) return;
       setState(() {
         _itens = resultado.itens;
@@ -120,7 +98,12 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     setState(() => _carregandoMais = true);
     _limite += _tamanhoPagina;
     try {
-      final resultado = await _buscarPagina(_limite);
+      final resultado = await buscarPaginaLancamentos(
+        empresaId: widget.empresaId,
+        limite: _limite,
+        // DV1: o Histórico esconde contas canceladas e a Home não.
+        ignorarCancelados: true,
+      );
       if (!mounted) return;
       setState(() {
         _itens = resultado.itens;
@@ -136,101 +119,10 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     }
   }
 
-  /// Busca até `limite` transações e `limite` contas (cada fonte com seu
-  /// próprio limite), mescla e ordena por data. Como cada fonte já traz suas
-  /// `limite` linhas mais recentes, o topo-`limite` combinado nunca perde um
-  /// item que deveria aparecer — só pode trazer itens repetidos de sobra, que
-  /// são cortados no final.
-  Future<_PaginaHistorico> _buscarPagina(int limite) async {
-    final transacoes = await supabase
-        .from('transacoes')
-        .select()
-        .eq('empresa_id', widget.empresaId)
-        .order('data_transacao', ascending: false)
-        .limit(limite);
-
-    final contas = await supabase
-        .from('contas_pagar_receber_vw')
-        .select()
-        .eq('empresa_id', widget.empresaId)
-        .neq('status_efetivo', 'pago')
-        .order('vencimento', ascending: false)
-        .limit(limite);
-
-    final clienteIds = <String>{
-      for (final t in transacoes)
-        if (t['cliente_id'] != null) t['cliente_id'] as String,
-      for (final c in contas)
-        if (c['cliente_id'] != null) c['cliente_id'] as String,
-    }.toList();
-
-    final clientes = clienteIds.isEmpty
-        ? <Map<String, dynamic>>[]
-        : List<Map<String, dynamic>>.from(
-            await supabase
-                .from('clientes')
-                .select('id, nome')
-                .inFilter('id', clienteIds),
-          );
-    final nomesPorId = {
-      for (final c in clientes) c['id'] as String: c['nome'] as String,
-    };
-
-    final itens = <_Item>[
-      for (final t in transacoes)
-        _Item(
-          id: t['id'] as String,
-          origem: 'transacao',
-          data: DateTime.parse(t['data_transacao'] as String),
-          descricao: t['descricao'] as String? ?? '',
-          categoria: t['categoria'] as String? ?? '',
-          valor: (t['valor'] as num).toDouble(),
-          tipo: t['tipo'] as String,
-          status: 'pago',
-          statusLabel: 'Pago',
-          notaFiscalStatus: t['nota_fiscal_status'] as String,
-          clienteId: t['cliente_id'] as String?,
-          clienteNome: t['cliente_id'] == null
-              ? null
-              : nomesPorId[t['cliente_id']],
-        ),
-      for (final c in contas)
-        if (c['status_efetivo'] != 'cancelado')
-          _Item(
-            id: c['id'] as String,
-            origem: 'conta',
-            data: DateTime.parse(c['vencimento'] as String),
-            descricao: c['descricao'] as String? ?? '',
-            categoria: c['categoria'] as String? ?? '',
-            valor: (c['valor'] as num).toDouble(),
-            tipo: c['tipo'] == 'receber' ? 'entrada' : 'saida',
-            status: c['status_efetivo'] as String,
-            statusLabel: c['status_efetivo'] == 'atrasado'
-                ? 'Atrasado'
-                : 'Pendente',
-            notaFiscalStatus: c['nota_fiscal_status'] as String,
-            clienteId: c['cliente_id'] as String?,
-            clienteNome: c['cliente_id'] == null
-                ? null
-                : nomesPorId[c['cliente_id']],
-          ),
-    ]..sort((a, b) => b.data.compareTo(a.data));
-
-    return _PaginaHistorico(
-      itens: itens.take(limite).toList(),
-      temMais: transacoes.length >= limite || contas.length >= limite,
-    );
-  }
-
   Future<void> _escolherPeriodoPersonalizado() async {
-    final agora = DateTime.now();
-    final intervalo = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(agora.year - 5),
-      lastDate: DateTime(agora.year + 1),
-      initialDateRange: _intervaloPersonalizado,
-      cancelText: 'Cancelar',
-      confirmText: 'Usar',
+    final intervalo = await escolherPeriodo(
+      context,
+      inicial: _intervaloPersonalizado,
     );
     if (intervalo != null) {
       setState(() {
@@ -336,7 +228,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     }
   }
 
-  List<Object> _agruparPorMes(List<_Item> itens) {
+  List<Object> _agruparPorMes(List<LancamentoDetalhado> itens) {
     final resultado = <Object>[];
     int? anoAtual;
     int? mesAtual;
@@ -354,7 +246,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     return resultado;
   }
 
-  Future<void> _exportarRelatorio(List<_Item> itens) async {
+  Future<void> _exportarRelatorio(List<LancamentoDetalhado> itens) async {
     final entradas = itens
         .where((i) => i.tipo == 'entrada')
         .fold<double>(0, (soma, i) => soma + i.valor);
@@ -421,23 +313,17 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     return 'Relatorio Spokfin - $rotulo.pdf';
   }
 
-  Future<void> _abrirDetalhes(_Item item) async {
+  /// `data · categoria` — o status já está no ícone da linha.
+  String _subtitulo(LancamentoDetalhado l) => [
+    formatarData(l.data),
+    if (l.categoria.isNotEmpty) l.categoria,
+  ].join(' · ');
+
+  Future<void> _abrirDetalhes(LancamentoDetalhado item) async {
     final alterou = await mostrarDetalhesLancamento(
       context,
       empresaId: widget.empresaId,
-      lancamento: LancamentoDetalhado(
-        id: item.id,
-        origem: item.origem,
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor: item.valor,
-        tipo: item.tipo,
-        data: item.data,
-        status: item.status,
-        clienteId: item.clienteId,
-        clienteNome: item.clienteNome,
-        notaFiscalStatus: item.notaFiscalStatus,
-      ),
+      lancamento: item,
     );
     if (alterou == true) _recarregar();
   }
@@ -448,10 +334,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       appBar: AppBar(
         title: const Text('Histórico de Contas'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: supabase.auth.signOut,
-          ),
+          AvatarPerfil(empresaId: widget.empresaId),
         ],
       ),
       body: Builder(
@@ -526,7 +409,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceAlt,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: AppColors.hairline),
                           ),
@@ -617,10 +500,13 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                               ),
                             );
                           }
-                          final item = entrada as _Item;
-                          return _ItemTile(
-                            item: item,
+                          final item = entrada as LancamentoDetalhado;
+                          return LancamentoTile(
+                            lancamento: item,
+                            subtitulo: _subtitulo(item),
                             onTap: () => _abrirDetalhes(item),
+                            mostrarIconeStatus: true,
+                            comBordaInferior: true,
                           );
                         },
                       ),
@@ -631,13 +517,6 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
       ),
     );
   }
-}
-
-class _PaginaHistorico {
-  _PaginaHistorico({required this.itens, required this.temMais});
-
-  final List<_Item> itens;
-  final bool temMais;
 }
 
 class _FiltroChip extends StatelessWidget {
@@ -658,7 +537,7 @@ class _FiltroChip extends StatelessWidget {
       selected: selecionado,
       onSelected: (_) => onTap(),
       selectedColor: AppColors.primary,
-      backgroundColor: AppColors.surfaceAlt,
+      backgroundColor: AppColors.surface,
       labelStyle: TextStyle(
         color: selecionado ? AppColors.textPrimary : AppColors.textMuted,
         fontWeight: FontWeight.w600,
@@ -670,99 +549,3 @@ class _FiltroChip extends StatelessWidget {
   }
 }
 
-class _ItemTile extends StatelessWidget {
-  const _ItemTile({required this.item, required this.onTap});
-
-  final _Item item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final positivo = item.tipo == 'entrada';
-    final cor = positivo ? AppColors.accent : AppColors.negative;
-    final sinal = positivo ? '+' : '-';
-    final subtitulo = [
-      formatarData(item.data),
-      if (item.categoria.isNotEmpty) item.categoria,
-    ].join(' · ');
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.hairline)),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              item.statusLabel == 'Pago'
-                  ? Icons.check_circle
-                  : Icons.radio_button_unchecked,
-              color: item.statusLabel == 'Pago'
-                  ? AppColors.accent
-                  : AppColors.textMuted,
-              size: 20,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.descricao,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          subtitulo,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                      if (item.notaFiscalStatus == 'pendente') ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            border: Border.all(color: AppColors.primary),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'NFC-e agendada',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '$sinal ${formatarValorCifrao(item.valor)}',
-              style: TextStyle(color: cor, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

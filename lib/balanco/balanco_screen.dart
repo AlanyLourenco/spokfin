@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 
 import '../lancamentos/detalhes_lancamento_screen.dart';
 import '../lancamentos/lancamento_detalhado.dart';
-import '../main.dart';
+import '../lancamentos/lancamento_tile.dart';
+import '../lancamentos/lancamentos_repository.dart';
+import '../shared/avatar_perfil.dart';
 import '../shared/app_card.dart';
 import '../shared/formatters.dart';
 import '../shared/lancamentos_bus.dart';
 import '../shared/motion.dart';
+import '../shared/seletor_periodo.dart';
 import '../theme.dart';
 
 const _nomesMesesCompletos = [
@@ -130,14 +133,9 @@ class _BalancoScreenState extends State<BalancoScreen> {
   }
 
   Future<void> _escolherPeriodoPersonalizado() async {
-    final agora = DateTime.now();
-    final intervalo = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(agora.year - 5),
-      lastDate: DateTime(agora.year + 1),
-      initialDateRange: _intervaloPersonalizado,
-      cancelText: 'Cancelar',
-      confirmText: 'Usar',
+    final intervalo = await escolherPeriodo(
+      context,
+      inicial: _intervaloPersonalizado,
     );
     if (intervalo != null) {
       setState(() {
@@ -202,23 +200,11 @@ class _BalancoScreenState extends State<BalancoScreen> {
     }
   }
 
-  Future<void> _abrirDetalhes(_LancamentoMes item) async {
+  Future<void> _abrirDetalhes(LancamentoDetalhado item) async {
     final alterou = await mostrarDetalhesLancamento(
       context,
       empresaId: widget.empresaId,
-      lancamento: LancamentoDetalhado(
-        id: item.id,
-        origem: 'transacao',
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor: item.valor,
-        tipo: item.tipo,
-        data: item.data,
-        status: 'pago',
-        clienteId: item.clienteId,
-        clienteNome: item.clienteNome,
-        notaFiscalStatus: item.notaFiscalStatus,
-      ),
+      lancamento: item,
     );
     if (alterou == true) _recarregar();
   }
@@ -249,79 +235,47 @@ class _BalancoScreenState extends State<BalancoScreen> {
         fim = null;
     }
 
-    var query = supabase
-        .from('transacoes')
-        .select()
-        .eq('empresa_id', widget.empresaId);
-    if (inicio != null) {
-      query = query.gte('data_transacao', inicio.toIso8601String().split('T').first);
-    }
-    if (fim != null) {
-      query = query.lt('data_transacao', fim.toIso8601String().split('T').first);
-    }
-    final transacoes = await query.order('data_transacao', ascending: false);
-
-    final clienteIds = <String>{
-      for (final t in transacoes)
-        if (t['cliente_id'] != null) t['cliente_id'] as String,
-    }.toList();
-    final clientes = clienteIds.isEmpty
-        ? <Map<String, dynamic>>[]
-        : List<Map<String, dynamic>>.from(
-            await supabase
-                .from('clientes')
-                .select('id, nome')
-                .inFilter('id', clienteIds),
-          );
-    final nomesPorId = {
-      for (final c in clientes) c['id'] as String: c['nome'] as String,
-    };
+    final carregados = await buscarLancamentos(
+      empresaId: widget.empresaId,
+      de: inicio,
+      ate: fim,
+      incluirContas: false,
+    );
 
     double receitas = 0;
     double despesas = 0;
     final entradaPorDia = <DateTime, double>{};
     final saidaPorDia = <DateTime, double>{};
     final categoriaTotais = <String, double>{};
-    final lancamentos = <_LancamentoMes>[];
+    final lancamentos = <LancamentoDetalhado>[];
     DateTime? menorData;
     DateTime? maiorData;
 
-    for (final t in transacoes) {
-      final valor = (t['valor'] as num).toDouble();
-      final data = DateTime.parse(t['data_transacao'] as String);
+    for (final bruto in carregados) {
+      // Categoria vazia vira "Outros" — aqui, e não no repositório, porque só
+      // o Balanço agrupa por categoria; as outras telas mostram o vazio mesmo.
+      final categoriaBruta = bruto.categoria.trim();
+      final lancamento = bruto.copiarCom(
+        categoria: categoriaBruta.isEmpty ? 'Outros' : categoriaBruta,
+      );
+      final valor = lancamento.valor;
+      final data = lancamento.data;
       final diaChave = DateTime(data.year, data.month, data.day);
-      final tipo = t['tipo'] as String;
-      final categoriaBruta = (t['categoria'] as String?)?.trim();
-      final categoria = (categoriaBruta == null || categoriaBruta.isEmpty)
-          ? 'Outros'
-          : categoriaBruta;
 
       if (menorData == null || diaChave.isBefore(menorData)) menorData = diaChave;
       if (maiorData == null || diaChave.isAfter(maiorData)) maiorData = diaChave;
 
-      if (tipo == 'entrada') {
+      if (lancamento.entrada) {
         receitas += valor;
         entradaPorDia[diaChave] = (entradaPorDia[diaChave] ?? 0) + valor;
       } else {
         despesas += valor;
         saidaPorDia[diaChave] = (saidaPorDia[diaChave] ?? 0) + valor;
-        categoriaTotais[categoria] = (categoriaTotais[categoria] ?? 0) + valor;
+        categoriaTotais[lancamento.categoria] =
+            (categoriaTotais[lancamento.categoria] ?? 0) + valor;
       }
 
-      final clienteId = t['cliente_id'] as String?;
-      lancamentos.add(
-        _LancamentoMes(
-          id: t['id'] as String,
-          descricao: t['descricao'] as String? ?? '',
-          categoria: categoria,
-          valor: valor,
-          tipo: tipo,
-          data: data,
-          clienteId: clienteId,
-          clienteNome: clienteId == null ? null : nomesPorId[clienteId],
-          notaFiscalStatus: t['nota_fiscal_status'] as String,
-        ),
-      );
+      lancamentos.add(lancamento);
     }
 
     final categoriasDespesa =
@@ -397,12 +351,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Balancete Mensal'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: supabase.auth.signOut,
-          ),
-        ],
+        actions: [AvatarPerfil(empresaId: widget.empresaId)],
       ),
       body: Center(
         child: ConstrainedBox(
@@ -465,7 +414,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceAlt,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(color: AppColors.hairline),
                           ),
@@ -736,7 +685,7 @@ class _BalancoScreenState extends State<BalancoScreen> {
                                             dados.categoriasDespesa[i].valor /
                                             maiorCategoria,
                                         minHeight: 6,
-                                        backgroundColor: AppColors.surfaceAlt,
+                                        backgroundColor: AppColors.surface,
                                         color:
                                             _paletaCategoria[i %
                                                 _paletaCategoria.length],
@@ -768,9 +717,14 @@ class _BalancoScreenState extends State<BalancoScreen> {
                       )
                     else
                       for (final item in dados.lancamentos)
-                        _LancamentoMesTile(
-                          item: item,
+                        LancamentoTile(
+                          lancamento: item,
+                          subtitulo:
+                              '${formatarData(item.data)} · Pago · ${item.categoria}',
                           onTap: () => _abrirDetalhes(item),
+                          comBordaInferior: true,
+                          // DV3: o Balanço nunca mostrou a pílula de NFC-e.
+                          mostrarNotaFiscal: false,
                         ),
                       ],
                     ),
@@ -816,7 +770,7 @@ class _BalancoDados {
   final double despesas;
   final List<_BarraValor> barras;
   final List<_CategoriaValor> categoriasDespesa;
-  final List<_LancamentoMes> lancamentos;
+  final List<LancamentoDetalhado> lancamentos;
 }
 
 class _BarraValor {
@@ -832,30 +786,6 @@ class _CategoriaValor {
 
   final String categoria;
   final double valor;
-}
-
-class _LancamentoMes {
-  _LancamentoMes({
-    required this.id,
-    required this.descricao,
-    required this.categoria,
-    required this.valor,
-    required this.tipo,
-    required this.data,
-    required this.notaFiscalStatus,
-    this.clienteId,
-    this.clienteNome,
-  });
-
-  final String id;
-  final String descricao;
-  final String categoria;
-  final double valor;
-  final String tipo;
-  final DateTime data;
-  final String notaFiscalStatus;
-  final String? clienteId;
-  final String? clienteNome;
 }
 
 class _EntradasSaidasChart extends StatelessWidget {
@@ -1004,59 +934,3 @@ class _DonutPainter extends CustomPainter {
       oldDelegate.fatias != fatias;
 }
 
-class _LancamentoMesTile extends StatelessWidget {
-  const _LancamentoMesTile({required this.item, required this.onTap});
-
-  final _LancamentoMes item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final positivo = item.tipo == 'entrada';
-    final cor = positivo ? AppColors.accent : AppColors.negative;
-    final sinal = positivo ? '+' : '-';
-    final subtitulo =
-        '${formatarData(item.data)} · Pago · ${item.categoria}';
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.hairline)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.descricao,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitulo,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '$sinal ${formatarValorCifrao(item.valor)}',
-              style: TextStyle(color: cor, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

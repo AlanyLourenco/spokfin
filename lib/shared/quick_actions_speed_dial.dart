@@ -247,7 +247,7 @@ class _ItemAcao extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.surfaceAlt,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(999),
             border: Border.all(color: AppColors.border),
           ),
@@ -262,7 +262,7 @@ class _ItemAcao extends StatelessWidget {
         const SizedBox(width: 10),
         FloatingActionButton.small(
           heroTag: 'quick_action_$label',
-          backgroundColor: destaque ? AppColors.primary : AppColors.surfaceAlt,
+          backgroundColor: destaque ? AppColors.primary : AppColors.surface,
           foregroundColor: AppColors.textPrimary,
           onPressed: onTap,
           child: Icon(icon, size: 18),

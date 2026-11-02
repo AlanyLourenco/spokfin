@@ -172,7 +172,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         children: [
                           CircleAvatar(
                             radius: 32,
-                            backgroundColor: AppColors.surfaceAlt,
+                            backgroundColor: AppColors.surface,
                             child: Text(
                               _iniciais,
                               style: const TextStyle(
@@ -358,7 +358,7 @@ class _CampoSomenteLeitura extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text(
@@ -388,7 +388,7 @@ class _ItemPerfil extends StatelessWidget {
   Widget build(BuildContext context) {
     final cor = corDestaque ?? AppColors.textPrimary;
     return Material(
-      color: AppColors.surfaceAlt,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),

@@ -169,7 +169,7 @@ class _FichaFornecedorScreenState extends State<FichaFornecedorScreen> {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.surfaceAlt,
+                    backgroundColor: AppColors.surface,
                     child: Text(
                       iniciais,
                       style: const TextStyle(color: AppColors.primary),
