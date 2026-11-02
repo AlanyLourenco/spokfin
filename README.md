@@ -20,6 +20,20 @@ O usuário fala ou digita o que aconteceu, em português natural:
 
 O spokfinRM transcreve (quando é áudio), extrai o lançamento estruturado inteiro — tipo, valor, categoria, status, cliente/fornecedor, data — via IA, e abre uma tela de confirmação já preenchida. O usuário revisa em segundos e ajusta só o que for preciso. Nenhum campo precisa ser digitado do zero no caminho comum.
 
+## Telas
+
+![spokfin: Home, captura por voz, revisão da IA e balanço](docs/prints/capa.png)
+
+| Home | Falar | Revisar (IA) | Balanço |
+|---|---|---|---|
+| ![Home](docs/prints/01-home.png) | ![Falar](docs/prints/02-falar.png) | ![Revisar lançamento](docs/prints/03-revisar-lancamento.png) | ![Balanço](docs/prints/04-balanco.png) |
+
+| MRR | Histórico | Clientes e Fornecedores | Login (app rodando) |
+|---|---|---|---|
+| ![MRR](docs/prints/05-mrr.png) | ![Histórico](docs/prints/06-historico.png) | ![Clientes](docs/prints/07-clientes.png) | ![Login](docs/prints/00-login.png) |
+
+Telas desenhadas a partir da UI do app ([`figma/`](figma/), board completo em [`figma/preview.png`](figma/preview.png)).
+
 ## Funcionalidades
 
 | Área | O que faz |
